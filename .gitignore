@@ -1,3 +1,5 @@
+
+
 # Local .terraform directories
 **/.terraform/*
 
@@ -35,3 +37,44 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# --- Ansible-specific ignores ---
+# Ignore Ansible retry files
+*.retry
+
+# Ignore Ansible roles directory (if roles are installed via galaxy)
+roles/*
+
+# Ignore sensitive variable files
+vars/*.yml
+group_vars/*.yml
+host_vars/*.yml
+
+# Ignore Ansible facts cache
+.fact_cache/
+
+# Ignore temporary inventory files
+inventory/*_inventory
+
+# Ignore SSH key files
+*.pem
+*.key
+
+# Ignore vault password files
+.vault_pass
+
+# Ignore Ansible collections cache
+~/.ansible/collections/*
+
+ansible.log
+
+# --- VSCode-specific ignores ---
+# Ignore VSCode settings and workspace specific files
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Ignore user settings for VSCode
+.code-workspace
