@@ -1,0 +1,8 @@
+---
+# 테스트 완료
+- name: setup for transcribe test
+  hosts: test_server
+  roles:
+    - role: awscli
+    - role: docker
+      become: yes

@@ -1,0 +1,32 @@
+- name: Create a swap file
+  ansible.builtin.command:
+    cmd: fallocate -l 4G /swapfile
+  args:
+    creates: /swapfile
+
+- name: Set the correct permissions for the swap file
+  ansible.builtin.file:
+    path: /swapfile
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Make the file a swap file
+  ansible.builtin.command:
+    cmd: mkswap /swapfile
+  when: ansible_facts.ansible_memtotal_mb is defined and ansible_facts.ansible_memtotal_mb <= 2048
+
+- name: Enable the swap file
+  ansible.builtin.command:
+    cmd: swapon /swapfile
+  when: ansible_facts.ansible_memtotal_mb is defined and ansible_facts.ansible_memtotal_mb <= 2048
+
+- name: Ensure swap is enabled on boot
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: '/swapfile none swap sw 0 0'
+    state: present
+
+- name: Verify swap is active
+  ansible.builtin.command:
+    cmd: swapon --show
