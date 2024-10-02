@@ -1,0 +1,8 @@
+---
+# tasks/main.yml
+# 코드 수정 필요!
+- name: Configure swap memory
+  include_tasks: conf_swap.yml
+
+- name: Install Jenkins 
+  include_tasks: install_jenkins.yml
