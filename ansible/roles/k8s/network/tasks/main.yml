@@ -4,27 +4,6 @@
     dest: /etc/kubernetes/calico-{{ calico_version }}.yaml
     mode: '0644'
 
-- name: Uncomment and update CALICO_IPV4POOL_CIDR in Calico manifest to {{ pod_network_cidr }}
-  block:
-    - name: Uncomment CALICO_IPV4POOL_CIDR
-      replace:
-        path: /etc/kubernetes/calico-{{ calico_version }}.yaml
-        regexp: '^# - name: CALICO_IPV4POOL_CIDR'
-        replace: '            - name: CALICO_IPV4POOL_CIDR'
-      
-    - name: Update CALICO_IPV4POOL_CIDR value
-      replace:
-        path: /etc/kubernetes/calico-{{ calico_version }}.yaml
-        regexp: '^#   value: "192.168.0.0/16"$'
-        replace: '              value: "{{ pod_network_cidr }}"'
-      backup: yes
-
-# - name: Apply Calico with custom CIDR
-#   ansible.builtin.command: >
-#     kubectl apply -f https://docs.projectcalico.org/v3.20/manifests/calico.yaml
-#   environment:
-#     CALICO_IPV4POOL_CIDR: "{{ pod_network_cidr }}"
-
 - name: Apply Calico v3.28.1 manifest
   command: kubectl apply -f /etc/kubernetes/calico-{{ calico_version }}.yaml
   register: apply_result
@@ -32,6 +11,16 @@
   failed_when: 
     - apply_result.rc != 0
     - "'AlreadyExists' not in apply_result.stderr"
+
+# - name: Patch the CALICO_IPV4POOL_CIvDR value
+#   command: |
+#     kubectl patch felixconfiguration default \
+#     --type='merge' \
+#     -p '{"spec": {"ipv4Pool": {"cidr": "{{ pod_network_cidr }}"}}}'
+#   register: patch_result
+#   changed_when: "'configured' in patch_result.stdout or 'updated' in patch_result.stdout"
+#   failed_when:
+#     - patch_result.rc != 0
 
 - name: Wait for Calico pods to be ready
   command: kubectl wait --for=condition=ready pods -l k8s-app=calico-node -n kube-system --timeout=300s
@@ -48,7 +37,3 @@
 - name: Display Calico pod status
   debug:
     var: calico_pods.stdout_lines
-
-- name: Display installed Calico version
-  debug:
-    msg: "Calico version {{ calico_version }} has been installed with pod network CIDR {{ pod_network_cidr }}"

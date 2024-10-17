@@ -1,18 +1,18 @@
 - name: Fetch join command from master node to worker nodes
   fetch:
-    src: /tmp/kubernetes_join_command
-    dest: /tmp/kubernetes_join_command
+    src: /tmp/join-command
+    dest: /tmp/join-command
     flat: yes
   delegate_to: "{{ master_node }}"
 
 - name: Copy join command to worker nodes
   copy:
-    src: /tmp/kubernetes_join_command
-    dest: /tmp/kubernetes_join_command
+    src: /tmp/join-command
+    dest: /tmp/join-command
     mode: '0644'
 
 - name: Execute join command on worker nodes
-  shell: sh /tmp/kubernetes_join_command
+  shell: sh /tmp/join-command
   register: join_result
   retries: 3
   delay: 30
@@ -20,5 +20,5 @@
 
 - name: Clean up join command on worker nodes
   file:
-    path: /tmp/kubernetes_join_command
+    path: /tmp/join-command
     state: absent
