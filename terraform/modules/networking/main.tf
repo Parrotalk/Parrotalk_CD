@@ -2,7 +2,7 @@ resource "aws_vpc" "this" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "${var.name_prefix}-vpc"
+    Name = "${var.service_name}-vpc"
   }
 }
 
@@ -13,7 +13,7 @@ resource "aws_subnet" "public_a" {
   availability_zone = "ap-northeast-2a"
 
   tags = {
-    Name = "${var.name_prefix}-subnet-public-a"
+    Name = "${var.service_name}-subnet-public-a"
   }
 }
 
@@ -24,7 +24,7 @@ resource "aws_subnet" "public_c" {
   availability_zone = "ap-northeast-2c"
 
   tags = {
-    Name = "${var.name_prefix}-subnet-public-c"
+    Name = "${var.service_name}-subnet-public-c"
   }
 }
 
@@ -35,7 +35,7 @@ resource "aws_subnet" "private_a" {
   availability_zone = "ap-northeast-2a"
 
   tags = {
-    Name = "${var.name_prefix}-subnet-private-a"
+    Name = "${var.service_name}-subnet-private-a"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_subnet" "private_c" {
   availability_zone = "ap-northeast-2c"
 
   tags = {
-    Name = "${var.name_prefix}-subnet-private-c"
+    Name = "${var.service_name}-subnet-private-c"
   }
 }
 
@@ -55,7 +55,7 @@ resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
   tags = {
-    Name = "${var.name_prefix}-igw"
+    Name = "${var.service_name}-igw"
   }
 }
 
@@ -69,7 +69,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "${var.name_prefix}-rt-public"
+    Name = "${var.service_name}-rt-public"
   }
 }
 

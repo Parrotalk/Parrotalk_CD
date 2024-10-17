@@ -1,11 +1,7 @@
 # modules/security_group/main.tf
-locals {
-  name_prefix = "${var.service_name}-${var.environment}"
-}
-
 resource "aws_security_group" "this" {
-  name        = "${local.name_prefix}-sg"
-  description = "Security group for ${var.environment} environment"
+  name        = "${var.sg_name}"
+  description = "Security group for ${var.sg_name} environment"
   vpc_id      = var.vpc_id
 
   dynamic "ingress" {
@@ -25,12 +21,7 @@ resource "aws_security_group" "this" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "${local.name_prefix}-sg"
-    }
-  )
+  tags = var.tags
 }
 
 # output

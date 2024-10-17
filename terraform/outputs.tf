@@ -13,3 +13,4 @@ output "subnet_public_c_id" {
   description = "The ID of the public subnet C"
   value       = module.networking.subnet_public_c_id
 }
+

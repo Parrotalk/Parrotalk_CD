@@ -1,17 +1,12 @@
 # modules/security_group/variables.tf
 
+variable "sg_name" {
+  description = "name of the Sg"
+  type        = string
+}
+
 variable "vpc_id" {
   description = "ID of the VPC"
-  type        = string
-}
-
-variable "service_name" {
-  description = "Name of the service"
-  type        = string
-}
-
-variable "environment" {
-  description = "Environment name"
   type        = string
 }
 
