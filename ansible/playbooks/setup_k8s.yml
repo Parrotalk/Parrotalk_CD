@@ -1,0 +1,30 @@
+# ansible-galaxy collection install ansible.posix kubernetes.core
+# ansible-playbook playbooks/setup_kubernetes.yml 
+- hosts: test_master
+  vars:
+    kubernetes_version: "v1.30"
+    pod_network_cidr: "192.168.0.0/16"
+    api_server_address: "{{ ansible_default_ipv4.address }}"
+    calico_version: "v3.28.1"
+  become: yes
+  roles:
+#   - k8s/common
+#   - k8s/master
+
+- name: Setup Calico and ArgoCD
+  hosts: test_master
+  become: yes
+  vars:
+    calico_version: "3.28.1"
+  roles:
+   - k8s/network
+   - k8s/helm
+
+# - hosts: test_workers
+#   vars:
+#     kubernetes_version: "1.30"
+#     master_node : "test_master1"
+#   become: yes
+#   roles:
+#   - k8s/common
+#   - k8s/worker

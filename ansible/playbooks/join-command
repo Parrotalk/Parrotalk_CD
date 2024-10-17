@@ -1,0 +1,1 @@
+ kubeadm join 10.0.1.22:6443 --token 5vbrs5.so2ktf79qldxsmph --discovery-token-ca-cert-hash sha256:649ac98819d4dd6df4d3dbc201ed91e4105580a2ee02ae88ba4f571f250feef3 
