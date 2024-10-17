@@ -79,10 +79,7 @@
         path: '{{ ansible_env.HOME }}/.bashrc'
         line: 'export KUBECONFIG=/etc/kubernetes/admin.conf'
         state: present
-        
-    # - name: Install the calico Plugin
-    #   ansible.builtin.command: "kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/calico.yaml"
-    
+
     - name: Check the cluster status 
       ansible.builtin.command: "kubectl get nodes"
       register: cluster_initial
@@ -107,11 +104,11 @@
         content: "{{ one_line_command.stdout }}"
         dest: "/tmp/join-command"
 
-    - name: Get the join command in main node
-      ansible.builtin.fetch:
-        src: "/tmp/join-command"
-        dest: "./join-command"
-        flat: yes
+    # - name: Get the join command in main node
+    #   ansible.builtin.fetch:
+    #     src: "/tmp/join-command"
+    #     dest: "./join-command"
+    #     flat: yes
 
     - name: Displaying the Kubeadm Init Result
       ansible.builtin.debug:

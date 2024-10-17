@@ -153,13 +153,13 @@
 
     - name: Add apt key
       ansible.builtin.apt_key:
-        url: https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/Release.key
+        url: https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key
         keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
       when: gpg_key_present.stat.exists != 'true'
 
 - name: Add the Kubernetes Repository
   ansible.builtin.apt_repository:
-    repo: deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/ /
+    repo: deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
     state: present
     filename: kubernetes
 
@@ -188,7 +188,7 @@
       loop:
         - kubelet
         - kubeadm
-        
+
 - name: Check if the containerd service is unmasked
   ansible.builtin.shell: "systemctl is-enabled containerd"
   register: masked_containerd
