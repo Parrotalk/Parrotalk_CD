@@ -7,20 +7,16 @@ locals {
   service_name  = var.service_name
   environment   = var.environment
   name_prefix   = "${var.service_name}-${var.environment}"
-}
+}  # 메인 안에서 사용할 변수s
 
-# 네트워킹 설정 (VPC 등 네트워크 관련 설정)
+# 네트워킹 설정 (VPC 등 네트워크 s 설정)
 module "networking" {
   source      = "./modules/networking"
   service_name = local.service_name
 }
 
 # transcribe 테스트용
-module "test_transcribe" {
-  source = "./modules/test_transcribe"
-  service_name = local.service_name
-  environment = local.environment
-}
+
 
 # 마스터노드 보안그룹 설정
 module "master_sg" {
@@ -41,6 +37,20 @@ module "master_sg" {
   tags = merge(var.tags, {
       Name = "${local.service_name}-master-sg",
       NodeType = "master"
+  })
+}
+
+module "jenkins_master_sg" {
+  source            = "./modules/security_group"
+  sg_name           = "${local.service_name}-jenkins-master-sg"
+  vpc_id            = module.networking.vpc_id  # 네트워크 모듈에서 생성된 VPC ID를 참조
+  ingress_rules = [
+    { from_port = 22,    to_port = 22,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow SSH" },
+    { from_port = 8080,  to_port = 8080,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow 8080" },
+    { from_port = 50000, to_port = 50000, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Jenkins agent communication on port 50000" }
+  ]
+  tags = merge(var.tags, {
+      Name = "${local.service_name}-jenkins-master-sg"
   })
 }
 
@@ -68,6 +78,19 @@ module "worker_sg" {
   tags = merge(var.tags, {
       Name = "${local.service_name}-sg",
       NodeType = "worker"
+  })
+}
+
+module "jenkins_worker_sg" {
+  source            = "./modules/security_group"
+  sg_name           = "${local.service_name}-jenkins-worker-sg"
+  vpc_id            = module.networking.vpc_id  # 네트워크 모듈에서 생성된 VPC ID를 참조
+  ingress_rules = [
+    { from_port = 22,    to_port = 22,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow SSH" }, 
+    { from_port = 50000, to_port = 50000, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Jenkins agent communication on port 50000" }
+  ]
+  tags = merge(var.tags, {
+      Name = "${local.service_name}-jenkins-worker-sg"
   })
 }
 
@@ -196,4 +219,30 @@ output "worker_nodes" {
       private_ip    = node.private_ip
     }
   }
+}
+
+# Jenkins Policy
+module "jenkins_user_policy" {
+  source                = "./modules/iam"
+  role_name             = "ptk-test-user"  # IAM 사용자에게는 역할 이름이 아닌 사용자를 직접 지정
+  policy_name           = "ptk-test-user-jenkins-policy"
+  policy_description    = "Policy for Jenkins access to AWS services"
+  policy_actions        = [
+    "ec2:DescribeInstances",
+    "autoscaling:DescribeAutoScalingGroups",
+    "autoscaling:UpdateAutoScalingGroup",
+    "s3:ListBucket",
+    "s3:GetObject",
+    "s3:PutObject",
+    "iam:PassRole",
+    "ecr:GetAuthorizationToken",
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:GetDownloadUrlForLayer",
+    "ecr:BatchGetImage"
+  ]
+
+  tags = merge(var.tags, {
+      Name = "ptk-test-user-jenkins-iam",
+      NodeType = "user"
+  })
 }
