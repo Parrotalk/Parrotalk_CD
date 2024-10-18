@@ -8,19 +8,10 @@
 # aws dynamodb scan --table-name ptk-terraform-lock-table
 # aws dynamodb delete-item --table-name ptk-terraform-lock-table --key '{"LockID": {"S": "ptk-terraform-state-bucket/terraform.tfstate"}}'
 
-terraform {
-  backend "s3" {
-    bucket         = "ptk-terraform-state-bucket-test"
-    key            = "terraform.tfstate"
-    region         = "ap-northeast-2"  # 서울 리전
-    encrypt        = true
-    dynamodb_table = "ptk-terraform-lock-table-test"
-  }
-}
 
 # S3 버킷 생성
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "ptk-terraform-state-bucket-test"
+  bucket = "ptk-terraform-state-bucket"
 
   versioning {
     enabled = true
@@ -37,7 +28,7 @@ resource "aws_s3_bucket" "terraform_state" {
 
 # DynamoDB 테이블 생성
 resource "aws_dynamodb_table" "terraform_locks" {
-  name         = "ptk-terraform-lock-table-test"
+  name         = "ptk-terraform-lock-table"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 

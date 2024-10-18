@@ -79,5 +79,6 @@ ansible.log
 # Ignore user settings for VSCode
 .code-workspace
 
-
+# Ignore pem key
+~/.SSH
 test_backup
