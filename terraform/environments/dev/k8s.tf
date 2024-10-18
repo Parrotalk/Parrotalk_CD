@@ -105,7 +105,7 @@ module "k8s_worker_iam" {
   })
 }
 
-# 마스터노드 생성
+# 마스터노드 생성 (깃허브 테스트)
 module "k8s_master_node" {
   service_name                = local.service_name
   environment                 = local.environment
