@@ -77,7 +77,7 @@ module "jenkins_master_node" {
   environment                 = local.environment
   source                      = "../../modules/ec2"
 
-  key_name                    = "ptk-jenkins-key"
+  key_name                    = "ptk-test-jenkins-key"
   instance_type               = "t2.medium"
   volume_size                 = 30
   associate_public_ip_address = true
@@ -102,7 +102,7 @@ module "jenkins_worker_nodes" {
 
   for_each                    = local.jenkins_node_group
 
-  key_name                    = "ptk-jenkins-key"
+  key_name                    = "ptk-test-jenkins-key"
   instance_type               = each.value.instance_type
   volume_size                 = each.value.volume_size
   associate_public_ip_address = each.value.use_public_ip
