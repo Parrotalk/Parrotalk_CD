@@ -1,7 +1,3 @@
-locals {
-  name_prefix = "${var.service_name}-${var.environment}"
-}
-
 resource "aws_instance" "this" {
   ami           = "ami-040c33c6a51fd5d96" # ubuntu 24.04고정
   instance_type = var.instance_type
