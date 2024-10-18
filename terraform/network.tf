@@ -84,3 +84,31 @@ resource "aws_route_table_association" "public_c" {
   subnet_id      = aws_subnet.public_c.id
   route_table_id = aws_route_table.public.id
 }
+
+
+## output ##
+
+output "vpc_id" {
+  description = "ID of the VPC"
+  value       = aws_vpc.this.id
+}
+
+output "public_subnet_a_id" {
+  description = "ID of the Public Subnet A"
+  value       = aws_subnet.public_a.id
+}
+
+output "public_subnet_c_id" {
+  description = "ID of the Public Subnet C"
+  value       = aws_subnet.public_c.id
+}
+
+output "private_subnet_a_id" {
+  description = "ID of the Private Subnet A"
+  value       = aws_subnet.private_a.id
+}
+
+output "private_subnet_c_id" {
+  description = "ID of the Private Subnet C"
+  value       = aws_subnet.private_c.id
+}
