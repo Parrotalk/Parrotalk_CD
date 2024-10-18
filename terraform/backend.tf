@@ -9,6 +9,17 @@
 # aws dynamodb delete-item --table-name ptk-terraform-lock-table --key '{"LockID": {"S": "ptk-terraform-state-bucket/terraform.tfstate"}}'
 
 
+terraform {
+  backend "s3" {
+    bucket         = "ptk-terraform-state-bucket"
+    key            = "terraform.tfstate"
+    region         = "ap-northeast-2"  # 서울 리전
+    encrypt        = true
+    dynamodb_table = "ptk-terraform-lock-table"
+  }
+}
+
+
 # S3 버킷 생성
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "ptk-terraform-state-bucket"
