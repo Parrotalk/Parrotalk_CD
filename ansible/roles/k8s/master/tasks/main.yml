@@ -2,51 +2,25 @@
 - name: Pre-flight checks
   include_tasks: preflight_checks.yml
 
-# - name: Install Kubernetes components
-#   block:
-#     - name: Install Kubectl
-#       apt:
-#         name: kubectl={{ kubernetes_version }}.*
-#         state: present
-#         update_cache: true
+- name: Install Kubernetes components
+  block:
+    - name: Install Kubectl
+      apt:
+        name: kubectl={{ kubernetes_version }}.*
+        state: present
+        update_cache: true
 
-#     - name: Hold kubectl packages
-#       dpkg_selections:
-#         name: "{{ item }}"
-#         selection: hold
-#       loop:
-#         - kubectl
-
-# - name: Reset Kubernetes cluster (if already initialized)
-#   block:
-#     - name: Reset kubeadm
-#       command: kubeadm reset -f
-#     - name: Remove Kubernetes configuration files
-#       file:
-#         path: "{{ item }}"
-#         state: absent
-#       loop:
-#         - /etc/kubernetes/manifests
-#         - /etc/kubernetes/pki
-#         - /var/lib/etcd
-#         - /var/lib/kubelet
-#         - /etc/cni/net.d
-#     - name: Clean iptables rules
-#       command: iptables -F
-#     - name: Clean IPVS rules
-#       command: ipvsadm --clear
-#     - name: Restart containerd service after reset
-#       systemd:
-#         name: containerd
-#         state: restarted
-#   when: 
-#     - "'The cluster has no token available' not in kubeadm_token_check.stdout"
-
-## Master node specific tasks
+    - name: Hold kubectl packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubectl   
 
 - name: Initialize Kubernetes cluster
   command: kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ api_server_address }}
   register: kubeadm_init_result
+  when: kubectl_get_nodes.rc != 0
   ignore_errors: true
 
 - name: Debugging the Result
@@ -83,37 +57,3 @@
     - name: Check the cluster status 
       ansible.builtin.command: "kubectl get nodes"
       register: cluster_initial
-
-    - name: Copy the join command in a remote file
-      ansible.builtin.copy:
-        content: |
-          "{{ kubeadm_init_result.stdout_lines }}"
-        dest: "/tmp/join-command"
-
-    - name: Cat the kubeadm join to get the single line
-      ansible.builtin.shell: >
-        cat /tmp/join-command | 
-        awk -F ',' '{print $(NF-1) $(NF)}' |
-        sed "s/\\\\' '\\\t//g" | 
-        sed "s/\\\--discovery/--discovery/" |  
-        sed "s/'\]\"//" | sed "s/'//"
-      register: one_line_command
-
-    - name: Rewriting the join command  
-      ansible.builtin.copy:
-        content: "{{ one_line_command.stdout }}"
-        dest: "/tmp/join-command"
-
-    # - name: Get the join command in main node
-    #   ansible.builtin.fetch:
-    #     src: "/tmp/join-command"
-    #     dest: "./join-command"
-    #     flat: yes
-
-    - name: Displaying the Kubeadm Init Result
-      ansible.builtin.debug:
-        msg: "{{ kubeadm_init_result }}"
-
-    - name: Displaying the Cluster status
-      ansible.builtin.debug:
-        msg: "{{ cluster_initial.stdout }}"

@@ -1,24 +1,29 @@
-- name: Fetch join command from master node to worker nodes
-  fetch:
-    src: /tmp/join-command
-    dest: /tmp/join-command
-    flat: yes
+- name: Get join command from master node
+  command: kubeadm token create --print-join-command
+  register: join_command
   delegate_to: "{{ master_node }}"
 
-- name: Copy join command to worker nodes
-  copy:
-    src: /tmp/join-command
-    dest: /tmp/join-command
-    mode: '0644'
-
-- name: Execute join command on worker nodes
-  shell: sh /tmp/join-command
+- name: Join worker nodes to the cluster
+  command: "{{ join_command.stdout }}"
+  when: inventory_hostname != master_node
+  become: yes
   register: join_result
   retries: 3
-  delay: 30
+  delay: 10
   until: join_result.rc == 0
 
-- name: Clean up join command on worker nodes
-  file:
-    path: /tmp/join-command
-    state: absent
+# 노드 연결됐는지 확인하려고 대기
+- name: Wait for 1 minute
+  wait_for:
+    timeout: 60
+  when: inventory_hostname != master_node
+
+- name: Verify node joined successfully
+  command: kubectl get nodes
+  register: node_info
+  delegate_to: "{{ master_node }}"
+
+- name: Display node information
+  debug:
+    var: node_info.stdout_lines
+  when: inventory_hostname != master_node
