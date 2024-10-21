@@ -2,13 +2,13 @@ locals {
   k8s_name_prefix = "${local.service_name}-${local.environment}-k8s"
   k8s_node_group = {
     worker-node-1 = {
-      instance_type = "t2.medium"
+      instance_type = "t3.medium"
       volume_size   = 50
       use_public_ip = true
       subnet_id = data.aws_subnet.public_a.id
     },
     worker-node-2 = {
-      instance_type = "t2.medium"
+      instance_type = "t3.medium"
       volume_size   = 50
       use_public_ip = true
       subnet_id = data.aws_subnet.public_c.id
@@ -112,8 +112,8 @@ module "k8s_master_node" {
   source                      = "../../modules/ec2"
 
   key_name                    = "ptk-k8s-key"
-  instance_type               = "t2.medium"
-  volume_size                 = 30
+  instance_type               = "t3.medium"
+  volume_size                 = 50
   associate_public_ip_address = true
   subnet_id                   = data.aws_subnet.public_a.id
   security_group_ids          = [module.k8s_master_sg.security_group_id]
@@ -126,6 +126,22 @@ module "k8s_master_node" {
     NodeType  = "master",
     Role      = "master"
   })
+}
+
+resource "aws_ebs_volume" "master_etcd_volume" {
+  availability_zone = data.aws_subnet.public_a.availability_zone
+  size              = 20
+  type              = "gp3"
+  
+  tags = merge(local.tags, {
+    Name = "${local.k8s_name_prefix}-master-etcd-volume"
+  })
+}
+
+resource "aws_volume_attachment" "master_etcd_attachment" {
+  device_name = "/dev/sdf"
+  volume_id   = aws_ebs_volume.master_etcd_volume.id
+  instance_id = module.k8s_master_node.instance_id
 }
 
 # 워커노드 생성
