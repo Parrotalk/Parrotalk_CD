@@ -12,16 +12,6 @@
     - apply_result.rc != 0
     - "'AlreadyExists' not in apply_result.stderr"
 
-# - name: Patch the CALICO_IPV4POOL_CIvDR value
-#   command: |
-#     kubectl patch felixconfiguration default \
-#     --type='merge' \
-#     -p '{"spec": {"ipv4Pool": {"cidr": "{{ pod_network_cidr }}"}}}'
-#   register: patch_result
-#   changed_when: "'configured' in patch_result.stdout or 'updated' in patch_result.stdout"
-#   failed_when:
-#     - patch_result.rc != 0
-
 - name: Wait for Calico pods to be ready
   command: kubectl wait --for=condition=ready pods -l k8s-app=calico-node -n kube-system --timeout=300s
   register: wait_result
