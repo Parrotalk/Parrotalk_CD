@@ -1,0 +1,10 @@
+# 명령어 실행시 username이랑 gittoken 값 넣어서 실행, vault 서버 생기면 리팩토링할 예정
+# ansible-playbook playbooks/setup_argocd.yml -e "git_username=your_username git_token=your_token"
+
+- hosts: dev_master
+  become: yes
+  vars:
+    env: dev
+    service_port: 9000
+  roles:
+    - argocd

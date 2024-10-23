@@ -1,0 +1,6 @@
+---
+- name: Install ArgoCD
+  include_tasks: install.yml
+
+# - name: Configure ArgoCD
+#   include_tasks: configure.yml

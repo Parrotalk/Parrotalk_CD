@@ -1,71 +1,64 @@
 ---
-- name: Update hostnames and manage /etc/hosts
+- name: Initialize hosts.ini locally
+  hosts: localhost
+  tasks:
+    - name: Create an empty hosts.ini file
+      copy:
+        content: |
+          # hosts.ini generated on {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+        dest: "{{ playbook_dir }}/hosts.ini"
+        force: yes
+
+- name: Update hostnames and manage /etc/hosts, then add to hosts.ini
   hosts: dev
   become: yes
   gather_facts: yes
-
+  serial: 1
   tasks:
-    - name: Set hostname using hostnamectl
-      command: hostnamectl set-hostname {{ inventory_hostname }} --static
+    - name: Set hostname using hostnamectl from inventory
+      command: hostnamectl set-hostname {{ hostname }} --static
       become: yes
-
-    - name: Ensure new hostname is in /etc/hosts
-      lineinfile:
-        path: /etc/hosts
-        regexp: '^127\.0\.1\.1'
-        line: '127.0.1.1 {{ inventory_hostname }}'
 
     - name: Get internal IP address
       set_fact:
         internal_ip: "{{ ansible_default_ipv4.address }}"
 
-    - name: Collect host information and delegate to localhost
-      set_fact:
-        host_info: "{{ hostvars['localhost']['host_info'] | default([]) + [{'name': inventory_hostname, 'ip': internal_ip}] }}"
+    - name: Add host information to local hosts.ini file
       delegate_to: localhost
-      delegate_facts: true
-      when: hostvars['localhost']['host_info'] is defined
+      run_once: no
+      become: no
+      lineinfile:
+        path: "{{ playbook_dir }}/hosts.ini"
+        line: "{{ internal_ip }} {{ hostname }}"
+        state: present
 
-    - name: Initialize host_info on localhost if not defined
-      set_fact:
-        host_info: []
-      delegate_to: localhost
-      delegate_facts: true
-      when: hostvars['localhost']['host_info'] is not defined
-
-- name: Create hosts.ini file locally
-  hosts: localhost
-  connection: local
-  become: no
-
+- name: Add hosts.ini entries to /etc/hosts on each server
+  hosts: dev
+  become: yes
   tasks:
-    - name: Create hosts.ini file with collected information
+    - name: Copy hosts.ini to the remote server
       copy:
-        content: "{% for host in host_info %}{{ host.name }} {{ host.ip }}\n{% endfor %}"
-        dest: "./hosts.ini"
+        src: "{{ playbook_dir }}/hosts.ini"
+        dest: /tmp/hosts.ini
+        mode: '0644'
 
-    - name: Display hosts.ini content
+    - name: Add hosts.ini contents to /etc/hosts
+      shell: "cat /tmp/hosts.ini >> /etc/hosts"
+      become: yes
+
+    - name: Display /etc/hosts content for verification
+      command: cat /etc/hosts
+      register: hosts_file_content
+      become: yes
+
+    - name: Show /etc/hosts
       debug:
-        msg: "hosts.ini content:\n{{ lookup('file', './hosts.ini') }}"
+        var: hosts_file_content.stdout
 
-# - name: Update /etc/hosts on all servers
-#   hosts: dev
-#   become: yes
-
-#   tasks:
-#     - name: Backup existing /etc/hosts file
-#       copy:
-#         src: /etc/hosts
-#         dest: /etc/hosts.backup_{{ ansible_date_time.iso8601 }}
-#         backup: yes
-#       register: backup_result
-
-#     - name: Show backup file location
-#       debug:
-#         msg: "Backup created at: {{ backup_result.dest }}"
-
-#     - name: Add entries to /etc/hosts from hosts.ini
-#       blockinfile:
-#         path: /etc/hosts
-#         block: "{{ lookup('file', './hosts.ini') }}"
-#         marker: "# {mark} ANSIBLE MANAGED BLOCK - DEV HOSTS"
+- name: Remove hosts.ini locally
+  hosts: localhost
+  tasks:
+    - name: Delete hosts.ini file
+      file:
+        path: "{{ playbook_dir }}/hosts.ini"
+        state: absent

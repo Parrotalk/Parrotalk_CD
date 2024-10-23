@@ -1,0 +1,27 @@
+# helm upgrade --install ingress-nginx-alb ingress-nginx/ingress-nginx \
+#   --repo https://kubernetes.github.io/ingress-nginx \
+#   --namespace ingress-nginx-alb --create-namespace \
+#   --set controller.ingressClass=alb \
+#   --set controller.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing
+
+# helm upgrade --install ingress-nginx-nlb ingress-nginx/ingress-nginx \
+#   --repo https://kubernetes.github.io/ingress-nginx \
+#   --namespace ingress-nginx-nlb --create-namespace \
+#   --set controller.ingressClass=nlb \
+#   --set controller.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-type"=nlb
+
+- name: Install ALB Ingress Controller using Helm
+  command: >
+    helm upgrade --install ingress-nginx-alb ingress-nginx/ingress-nginx --namespace ingress-nginx-alb --create-namespace
+    --values /tmp/manifests/argocd/{{ env }}/alb-values.yaml
+    --set controller.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing
+
+- name: Install NLB Ingress Controller using Helm
+  command: >
+    helm upgrade --install ingress-nginx-nlb ingress-nginx/ingress-nginx --namespace ingress-nginx-nlb --create-namespace
+    --values /tmp/manifests/argocd/{{ env }}/nlb-values.yaml
+    --set controller.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-type"=nlb
+
+- name: Apply ArgoCD Ingress
+  command: >
+    kubectl apply -f /tmp/manifests/argocd/{{ env }}/ingress.yaml
