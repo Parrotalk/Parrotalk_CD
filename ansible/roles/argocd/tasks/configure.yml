@@ -1,0 +1,61 @@
+---
+- name: Get Argo CD initial admin password
+  shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
+  register: argocd_admin_password
+
+- name: Display Argo CD initial admin password
+  ansible.builtin.debug:
+    msg: "Argo CD initial admin password: {{ argocd_admin_password.stdout }}"
+
+- name: Wait for ArgoCD server to be ready
+  uri:
+    url: "http://ptk-dev-k8s-alb-124313982.ap-northeast-2.elb.amazonaws.com/healthz"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 3
+  delay: 10
+
+- name: Log in to Argo CD
+  command: >
+    argocd login {{ argocd_domain }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+
+- name: Configure ArgoCD repository using shell
+  shell: >
+    argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
+  when: git_username is defined and git_token is defined
+  no_log: true
+
+- name: Clear Git credentials from environment variables
+  command: "unset git_username git_token"
+  ignore_errors: yes
+
+
+
+- name: Log in to Argo CD
+  command: >
+    argocd login http://{{ ansible_host }}:${{ service_port }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+
+- name: Configure ArgoCD repository using shell
+  shell: >
+    argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
+  when: git_username is defined and git_token is defined
+  no_log: true
+
+- name: Clear Git credentials from environment variables
+  command: "unset git_username git_token"
+  ignore_errors: yes
+
+
+# - name: Create Argo CD project
+#   command: >
+#     argocd proj create example-project --description "Example Project" --dest https://kubernetes.default.svc,argocd --src "*" --allow-cluster-resource "*"
+
+
+# - name: Cleanup cloned repository
+#   command: "rm -rf /tmp/manifests"
+server:
+  service:
+    deployment:
+    type: ClusterIP
+    port: 9000

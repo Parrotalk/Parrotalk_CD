@@ -1,0 +1,137 @@
+- name: Drain the worker nodes (except master node)
+  command: "kubectl drain {{ hostname }} --ignore-daemonsets --delete-emptydir-data"
+  when: inventory_hostname != {{ master_node }}
+  ignore_errors: true
+
+- name: Reset Kubernetes using kubeadm
+  command: kubeadm reset -f
+  ignore_errors: true
+
+- name: Remove .kube directory
+  file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: absent
+  ignore_errors: true
+
+- name: Remove CNI configurations
+  file:
+    path: /etc/cni/net.d
+    state: absent
+  ignore_errors: true
+
+- name: Remove Kubernetes config files
+  file:
+    path: /etc/kubernetes
+    state: absent
+  ignore_errors: true
+
+- name: Remove containerd configurations
+  file:
+    path: /etc/containerd
+    state: absent
+  ignore_errors: true
+
+- name: Stop and disable kubelet service
+  systemd:
+    name: kubelet
+    state: stopped
+    enabled: no
+  ignore_errors: true
+
+- name: Stop and disable containerd service
+  systemd:
+    name: containerd
+    state: stopped
+    enabled: no
+  ignore_errors: true
+
+- name: Remove Kubernetes packages including held packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+      - containerd
+    state: absent
+    purge: yes
+    force: yes
+    allow_change_held_packages: yes
+  ignore_errors: true
+
+- name: Flush all iptables rules
+  command: iptables -F
+  ignore_errors: true
+
+- name: Flush all NAT iptables rules
+  command: iptables -t nat -F
+  ignore_errors: true
+
+- name: Flush all mangle iptables rules
+  command: iptables -t mangle -F
+  ignore_errors: true
+
+- name: Flush all raw iptables rules
+  command: iptables -t raw -F
+  ignore_errors: true
+
+- name: Delete Kubernetes and Calico iptables chains
+  block:
+    - name: Delete KUBE-EXTERNAL-SERVICES chain
+      command: iptables -X KUBE-EXTERNAL-SERVICES
+      ignore_errors: true
+
+    - name: Delete KUBE-FIREWALL chain
+      command: iptables -X KUBE-FIREWALL
+      ignore_errors: true
+
+    - name: Delete KUBE-FORWARD chain
+      command: iptables -X KUBE-FORWARD
+      ignore_errors: true
+
+    - name: Delete KUBE-KUBELET-CANARY chain
+      command: iptables -X KUBE-KUBELET-CANARY
+      ignore_errors: true
+
+    - name: Delete KUBE-NODEPORTS chain
+      command: iptables -X KUBE-NODEPORTS
+      ignore_errors: true
+
+    - name: Delete KUBE-PROXY-CANARY chain
+      command: iptables -X KUBE-PROXY-CANARY
+      ignore_errors: true
+
+    - name: Delete KUBE-PROXY-FIREWALL chain
+      command: iptables -X KUBE-PROXY-FIREWALL
+      ignore_errors: true
+
+    - name: Delete KUBE-SERVICES chain
+      command: iptables -X KUBE-SERVICES
+      ignore_errors: true
+
+- name: Remove Calico networking components
+  command: kubectl delete -f /etc/kubernetes/calico-{{ calico_version }}.yaml
+  ignore_errors: true
+
+- name: Remove Helm (if installed)
+  file:
+    path: /usr/local/bin/helm
+    state: absent
+  ignore_errors: true
+
+- name: Remove Helm config files
+  file:
+    path: /etc/helm
+    state: absent
+  ignore_errors: true
+
+- name: Clean up remaining directories and files
+  file:
+    path: /var/lib/kubelet
+    state: absent
+  ignore_errors: true
+
+- name: Clean up /tmp directory
+  file:
+    path: /tmp/*
+    state: absent
+  ignore_errors: true

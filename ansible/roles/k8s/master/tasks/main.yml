@@ -2,25 +2,9 @@
 - name: Pre-flight checks
   include_tasks: preflight_checks.yml
 
-- name: Install Kubernetes components
-  block:
-    - name: Install Kubectl
-      apt:
-        name: kubectl={{ kubernetes_version }}.*
-        state: present
-        update_cache: true
-
-    - name: Hold kubectl packages
-      dpkg_selections:
-        name: "{{ item }}"
-        selection: hold
-      loop:
-        - kubectl   
-
 - name: Initialize Kubernetes cluster
   command: kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ api_server_address }}
   register: kubeadm_init_result
-  when: kubectl_get_nodes.rc != 0
   ignore_errors: true
 
 - name: Debugging the Result

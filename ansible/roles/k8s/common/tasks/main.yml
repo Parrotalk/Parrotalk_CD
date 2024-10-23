@@ -15,11 +15,12 @@
       - apt-transport-https
       - ca-certificates
       - curl
+      - gnupg2
       - software-properties-common
       - socat
       - ipvsadm
     state: present
-    update_cache: yes 
+    update_cache: yes
 
 - name: Block to manage Swap space
   block:
@@ -180,6 +181,12 @@
         name: kubeadm={{ kubernetes_version }}.*
         state: present
         update_cache: true
+    
+    - name: Install kubectl
+      apt:
+        name: kubectl={{ kubernetes_version }}.*
+        state: present
+        update_cache: true
 
     - name: Hold kubelet and kubeadm packages
       dpkg_selections:
@@ -188,6 +195,7 @@
       loop:
         - kubelet
         - kubeadm
+        - kubectl
 
 - name: Check if the containerd service is unmasked
   ansible.builtin.shell: "systemctl is-enabled containerd"
