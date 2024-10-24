@@ -1,0 +1,16 @@
+---
+- hosts: master
+  become: yes
+  tasks:
+    - name: Install Helm
+      shell: |
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+    - name: Add Jenkins Helm repo
+      command: helm repo add jenkins https://charts.jenkins.io
+
+    - name: Update Helm repos
+      command: helm repo update
+
+    - name: Install Jenkins
+      command: helm install jenkins jenkins/jenkins --set controller.serviceType=LoadBalancer
