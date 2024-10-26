@@ -1,0 +1,12 @@
+#  - name: Install awscli
+#    include_tasks: cli.yml
+
+# - name: Configure ArgoCD
+#   include_tasks: cert.yml
+
+# - name: Configure ArgoCD
+#   include_tasks: lb.yml
+
+
+- name: delete ArgoCD
+  include_tasks: delete.yml

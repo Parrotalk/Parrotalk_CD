@@ -2,7 +2,7 @@
 
 # 실행전에 setup_hosts.yml 으로 호스트명부터 변경
 
-- name: Setup Calico and ArgoCD
+- name: remove k8s
   hosts: dev
   become: yes
   vars:

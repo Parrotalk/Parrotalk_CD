@@ -1,10 +1,22 @@
 # 명령어 실행시 username이랑 gittoken 값 넣어서 실행, vault 서버 생기면 리팩토링할 예정
 # ansible-playbook playbooks/setup_argocd.yml -e "git_username=your_username git_token=your_token"
 
-- hosts: dev_master
-  become: yes
+# - hosts: dev_master
+#   become: yes
+#   vars:
+#     env: dev
+#     service_port: 32000
+#   roles:
+#     - argocd
+    
+- name: Setup ArgoCD SSH Authentication with GitHub
+  hosts: dev_master
+  become: true
   vars:
-    env: dev
-    service_port: 9000
+    github_repo: "git@github.com:Parrotalk/Parrotalk-Manifests.git"
+    ssh_key_path: "/root/.ssh"
+    ssh_key_name: "ptk-argocd-key"
+    ssh_key_comment: "argocd@master-node"
+    argocd_namespace: "argocd"
   roles:
     - argocd

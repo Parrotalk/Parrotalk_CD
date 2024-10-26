@@ -1,0 +1,27 @@
+# - name: Install ApplicationSet CRD
+#   command: kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds?ref=stable
+- name: Clone manifest repository using credentials via shell
+  shell: "git clone https://{{ git_username }}:{{ git_token }}@github.com/Parrotalk/Parrotalk-Manifests.git /tmp/manifests --branch main"
+  no_log: true
+  
+- name: Get Argo CD initial admin password
+  shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
+  register: argocd_admin_password
+
+- name: Login to ArgoCD
+  shell: "argocd login localhost:{{ service_port }} --username admin --password {{ argocd_admin_password.stdout }} --insecure"
+  register: login_output
+  changed_when: login_output.rc == 0
+
+- name: Add Git repository to ArgoCD
+  shell: >
+    argocd repo add https://github.com/Parrotalk/Parrotalk-Manifests \
+    --username {{ git_username }} \
+    --password {{ git_token }} \
+    --timeout 30
+  register: repo_output
+  changed_when: repo_output.rc == 0
+  retries: 3
+  delay: 10
+  until: repo_output.rc == 0
+  #no_log: true  # 보안을 위해 출력 로그 숨김

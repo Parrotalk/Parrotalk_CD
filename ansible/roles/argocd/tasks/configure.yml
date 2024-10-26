@@ -1,61 +1,76 @@
----
-- name: Get Argo CD initial admin password
-  shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
-  register: argocd_admin_password
 
-- name: Display Argo CD initial admin password
-  ansible.builtin.debug:
-    msg: "Argo CD initial admin password: {{ argocd_admin_password.stdout }}"
+- name: Ensure .ssh directory exists
+  file:
+    path: "{{ ssh_key_path }}"
+    state: directory
+    mode: '0700'
 
-- name: Wait for ArgoCD server to be ready
-  uri:
-    url: "http://ptk-dev-k8s-alb-124313982.ap-northeast-2.elb.amazonaws.com/healthz"
-    status_code: 200
-  register: result
-  until: result.status == 200
-  retries: 3
-  delay: 10
+- name: Check if SSH key already exists
+  stat:
+    path: "{{ ssh_key_path }}/{{ ssh_key_name }}"
+  register: ssh_key
 
-- name: Log in to Argo CD
+- name: Generate SSH key
   command: >
-    argocd login {{ argocd_domain }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+    ssh-keygen -t ed25519 
+    -C "{{ ssh_key_comment }}"
+    -f "{{ ssh_key_path }}/{{ ssh_key_name }}"
+    -N ""
+  when: not ssh_key.stat.exists
 
-- name: Configure ArgoCD repository using shell
-  shell: >
-    argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
-  when: git_username is defined and git_token is defined
-  no_log: true
+- name: Get SSH public key content
+  command: "cat {{ ssh_key_path }}/{{ ssh_key_name }}.pub"
+  register: public_key_content
+  changed_when: false
 
-- name: Clear Git credentials from environment variables
-  command: "unset git_username git_token"
+- name: Display public key to add to GitHub
+  debug:
+    msg: "Add this public key to GitHub: {{ public_key_content.stdout }}"
+
+- name: Add GitHub to known_hosts
+  known_hosts:
+    name: "github.com"
+    key: "{{ lookup('pipe', 'ssh-keyscan -t ed25519 github.com') }}"
+    state: present
+
+- name: Wait for SSH key to be added to GitHub
+  pause:
+    prompt: "Please add the displayed public key to GitHub and press ENTER to continue"
+
+- name: Test GitHub SSH connection
+  command: ssh -T git@github.com
+  register: ssh_test
   ignore_errors: yes
+  changed_when: false
 
+- name: Create ArgoCD repository secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: repo-ssh-key
+        namespace: "{{ argocd_namespace }}"
+      type: Opaque
+      data:
+        sshPrivateKey: "{{ lookup('file', ssh_key_path + '/' + ssh_key_name) | b64encode }}"
 
-
-- name: Log in to Argo CD
+- name: Add repository to ArgoCD
   command: >
-    argocd login http://{{ ansible_host }}:${{ service_port }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+    argocd repo add {{ github_repo }}
+    --ssh-private-key-path {{ ssh_key_path }}/{{ ssh_key_name }}
+  register: repo_add
+  changed_when: "'repository added' in repo_add.stdout"
+  failed_when:
+    - repo_add.rc != 0
+    - "'repository already exists' not in repo_add.stderr"
 
-- name: Configure ArgoCD repository using shell
-  shell: >
-    argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
-  when: git_username is defined and git_token is defined
-  no_log: true
+- name: Verify ArgoCD repository list
+  command: argocd repo list
+  register: repo_list
+  changed_when: false
 
-- name: Clear Git credentials from environment variables
-  command: "unset git_username git_token"
-  ignore_errors: yes
-
-
-# - name: Create Argo CD project
-#   command: >
-#     argocd proj create example-project --description "Example Project" --dest https://kubernetes.default.svc,argocd --src "*" --allow-cluster-resource "*"
-
-
-# - name: Cleanup cloned repository
-#   command: "rm -rf /tmp/manifests"
-server:
-  service:
-    deployment:
-    type: ClusterIP
-    port: 9000
+- name: Display repository status
+  debug:
+    msg: "{{ repo_list.stdout_lines }}"
