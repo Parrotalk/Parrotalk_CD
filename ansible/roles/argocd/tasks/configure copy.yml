@@ -1,0 +1,71 @@
+- name: Clone manifest repository using credentials via shell
+  shell: "git clone https://{{ git_username }}:{{ git_token }}@github.com/Parrotalk/Parrotalk-Manifests.git /tmp/manifests --branch main"
+  no_log: true
+  
+- name: Add Helm repository for Nginx Ingress
+  command: "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
+
+# ApplicationSet CRD가 설치되어 있는지 확인
+- name: Verify ApplicationSet CRD
+  command: "kubectl get crd applicationsets.argoproj.io"
+  register: applicationset_crd
+  ignore_errors: yes
+
+# ApplicationSet CRD가 없다면 설치
+- name: Install ApplicationSet CRD if not present
+  kubernetes.core.k8s:
+    state: present
+    apply: yes
+    definition: "{{ lookup('url', 'https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/crds/applicationset-crd.yaml', split_lines=False) }}"
+  when: applicationset_crd.rc != 0
+
+# ApplicationSet 적용
+- name: Apply ApplicationSet
+  command: "kubectl apply -f /tmp/manifests/{{ env }}/applicationset.yaml"
+
+# ArgoCD 서버 상태 확인
+- name: Check Argo CD server health
+  uri:
+    url: "http://{{ ansible_host }}:8080"
+    method: GET
+  register: health_response
+  retries: 3
+  delay: 10
+  until: health_response.status == 200
+
+# - name: Log in to Argo CD
+#   command: >
+#     argocd login {{ argocd_domain }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+
+# - name: Configure ArgoCD repository using shell
+#   shell: >
+#     argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
+#   when: git_username is defined and git_token is defined
+#   no_log: true
+
+# - name: Clear Git credentials from environment variables
+#   command: "unset git_username git_token"
+#   ignore_errors: yes
+
+# - name: Log in to Argo CD
+#   command: >
+#     argocd login http://{{ ansible_host }}:${{ service_port }} --username admin --password {{ argocd_admin_password.stdout }} --insecure
+
+# - name: Configure ArgoCD repository using shell
+#   shell: >
+#     argocd repo add {{ manifest_repo }} --username {{ git_username }} --password {{ git_token }} --upsert
+#   when: git_username is defined and git_token is defined
+#   no_log: true
+
+# - name: Clear Git credentials from environment variables
+#   command: "unset git_username git_token"
+#   ignore_errors: yes
+
+
+# # - name: Create Argo CD project
+# #   command: >
+# #     argocd proj create example-project --description "Example Project" --dest https://kubernetes.default.svc,argocd --src "*" --allow-cluster-resource "*"
+
+
+# # - name: Cleanup cloned repository
+# #   command: "rm -rf /tmp/manifests"

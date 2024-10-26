@@ -1,0 +1,6 @@
+- name: Install cert-manager
+  command: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.0/cert-manager.yaml
+
+- name: Wait for cert-manager deployments to be ready
+  command: kubectl -n cert-manager wait --for=condition=Available deployment --all --timeout=300s
+

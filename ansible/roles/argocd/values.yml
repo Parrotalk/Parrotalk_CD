@@ -1,0 +1,9 @@
+# apps/argocd/values.yaml
+server:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+  
+  # Ingress 설정은 제거하고 Service로만 노출

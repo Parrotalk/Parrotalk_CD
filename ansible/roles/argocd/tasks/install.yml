@@ -1,37 +1,27 @@
-# - name: Remove existing manifests directory if it exists
-#   file:
-#     path: /tmp/manifests
-#     state: absent
-
-# - name: Clone manifest repository using credentials via shell
-#   shell: "git clone https://{{ git_username }}:{{ git_token }}@github.com/Parrotalk/Parrotalk-Manifests.git /tmp/manifests --branch main"
-#   no_log: true
-  
 - name: Add Helm repository for Argo CD
   command: "helm repo add argo https://argoproj.github.io/argo-helm"
-
-- name: Add Helm repository for Nginx Ingress
-  command: "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
 
 - name: Update Helm repositories
   command: "helm repo update"
 
+- name: Download ArgoCD CLI
+  get_url:
+    url: https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+    dest: /usr/local/bin/argocd
+    mode: '0755'
+  become: true
+
 - name: Install Argo CD using Helm
   command: >
     helm upgrade --install argocd argo/argo-cd \
-    --namespace argocd --create-namespace \
-    -f /tmp/manifests/argocd/{{ env }}/values.yaml
+    --namespace argocd \
+    --create-namespace \
+    --set server.service.type=NodePort \
+    --set server.service.nodePortHttp={{ service_port }}
 
 - name: Wait for Argo CD pods to be ready
   command: >
     kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
-
-- name: Port-forward Argo CD server
-  command: >
-    nohup kubectl port-forward svc/argocd-server -n argocd 8080:9000 &
-  async: 60
-  poll: 0
-  ignore_errors: yes
 
 - name: Get Argo CD initial admin password
   shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
@@ -40,12 +30,3 @@
 - name: Display Argo CD initial admin password
   ansible.builtin.debug:
     msg: "Argo CD initial admin password: {{ argocd_admin_password.stdout }}"
-    
-- name: Check Argo CD server health
-  uri:
-    url: "http://{{ ansible_host }}:${{ service_port }}"
-    method: GET
-  register: health_response
-  retries: 3
-  delay: 10
-  until: health_response.status == 200

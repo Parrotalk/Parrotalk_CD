@@ -1,0 +1,21 @@
+# 1. ClusterRole 및 ClusterRoleBinding 삭제
+kubectl delete clusterrole argocd-application-controller
+kubectl delete clusterrole argocd-server
+kubectl delete clusterrolebinding argocd-application-controller
+kubectl delete clusterrolebinding argocd-server
+
+# 2. CRD 삭제
+kubectl delete crd applications.argoproj.io
+kubectl delete crd applicationsets.argoproj.io
+kubectl delete crd argocdextensions.argoproj.io
+kubectl delete crd appprojects.argoproj.io
+
+# 3. Namespace 삭제
+kubectl delete namespace argocd
+
+# 4. 기타 남아있을 수 있는 리소스들 삭제
+kubectl delete clusterrole argocd-server
+kubectl delete clusterrolebinding argocd-server
+kubectl delete -n argocd deployment argocd-server
+kubectl delete -n argocd deployment argocd-repo-server
+kubectl delete -n argocd deployment argocd-application-controller

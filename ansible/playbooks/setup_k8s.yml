@@ -1,31 +1,49 @@
 # # ansible-galaxy collection install ansible.posix kubernetes.core
 
 # 실행전에 setup_hosts.yml 으로 호스트명부터 변경
+# - hosts: dev_master
+#   vars:
+#     kubernetes_version: "1.30"
+#     pod_network_cidr: "172.16.0.0/16"
+#     api_server_address: "{{ ansible_default_ipv4.address }}"
+#   become: yes
+#   roles:
+#    - k8s/common
+#    - k8s/master
 
-- hosts: dev_master
-  vars:
-    kubernetes_version: "1.30"
-    pod_network_cidr: "172.16.0.0/16"
-    api_server_address: "{{ ansible_default_ipv4.address }}"
-  become: yes
-  roles:
-   - k8s/common
-   - k8s/master
+# - name: Setup Calico and ArgoCD
+#   hosts: dev_master
+#   become: yes
+#   vars:
+#     calico_version: "3.28.1"
+#   roles:
+#    - k8s/network
+#    - k8s/helm
 
-- name: Setup Calico and ArgoCD
+# - hosts: dev_workers
+#   vars:
+#     kubernetes_version: "1.30"
+#     master_node : "dev-master-1"
+#   become: yes
+#   roles:
+#   - k8s/common
+#   - k8s/worker
+
+# - name: Setup AWS Cert Manager
+#   hosts: dev
+#   become: yes
+#   roles:
+
+
+#테라폼 설정 확인필요: 서브넷 쿠버네티스 태그 / ec2 쿠버네티스 태그 / ec2 iam권한(EKS는 여기서 생성함 보통)
+
+- name: Setup AWS Cert Manager, Cli and Load Balancer Controller
   hosts: dev_master
   become: yes
   vars:
-    calico_version: "3.28.1"
+    vpc_id: "vpc-04867eebd2ba471dc"
+    cluster_name: "ptk"
+    cert_arn: "arn:aws:acm:us-east-1:703671911294:certificate/0456e36d-7664-4967-a603-48c1457bcabc"
+    domain_name: "ptks.link"
   roles:
-   - k8s/network
-   - k8s/helm
-
-- hosts: dev_workers
-  vars:
-    kubernetes_version: "1.30"
-    master_node : "dev-master-1"
-  become: yes
-  roles:
-  - k8s/common
-  - k8s/worker
+   - k8s/aws
