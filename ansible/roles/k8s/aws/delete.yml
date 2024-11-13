@@ -1,7 +1,0 @@
-helm uninstall aws-load-balancer-controller -n kube-system
-
-Let's also make sure to clean up any leftover resources:
-
-kubectl delete -n kube-system deployment aws-load-balancer-controller
-kubectl delete -n kube-system service aws-load-balancer-webhook-service
-kubectl delete -n kube-system serviceaccount aws-load-balancer-controller
