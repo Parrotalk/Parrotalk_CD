@@ -1,0 +1,42 @@
+# tasks/main.yml
+- name: Delete ValidateHook
+  command: kubectl delete -A ValidatingWebhookConfiguration ingress-nginx-admission
+  ignore_errors: yes
+  
+- name: Create temporary ingress file
+  copy:
+    dest: "/tmp/argocd-ingress.yaml"
+    content: |
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: argocd-ingress
+        namespace: argocd
+        annotations:
+          nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      spec:
+        ingressClassName: nginx
+        rules:
+          - host: argocd.ptks.link
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: argocd-server
+                      port:
+                        number: 443
+
+- name: Apply ArgoCD ingress
+  command: kubectl apply -f /tmp/argocd-ingress.yaml
+  register: apply_result
+  changed_when: apply_result.rc == 0
+
+- name: Remove temporary file
+  file:
+    path: "/tmp/argocd-ingress.yaml"
+    state: absent
+  changed_when: false

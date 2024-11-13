@@ -1,0 +1,15 @@
+# AWS Cloud Controller Manager
+aws_cloud_controller_manager_enabled: true
+
+# AWS EBS CSI Driver
+aws_ebs_csi_enabled: true
+aws_ebs_csi_enable_volume_scheduling: true
+aws_ebs_csi_enable_volume_snapshot: true
+aws_ebs_csi_enable_volume_resizing: true
+aws_ebs_csi_controller_replicas: 1
+
+# Dashboard (필요한 경우)
+dashboard_enabled: false
+
+# Helm (필요한 경우)
+helm_enabled: true
