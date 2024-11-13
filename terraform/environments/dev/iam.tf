@@ -141,3 +141,46 @@ resource "aws_iam_group_policy_attachment" "s3_policy_attachment" {
   policy_arn = aws_iam_policy.s3_policy.arn
   group      = aws_iam_group.dev_group.name
 }
+
+### ecr 컨테이너 권한
+
+# ECR 정책 생성
+data "aws_iam_role" "existing_role" {
+  name = "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+}
+
+resource "aws_iam_policy" "ecr_policy" {
+  name        = "cluster-api-ecr-policy"
+  description = "ECR access policy for cluster-api-provider-aws"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "arn:aws:ecr:ap-northeast-2:703671911294:repository/ptk-dev-ecr-argocd"
+      },
+      {
+        Effect = "Allow"
+        Action = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 기존 role에 정책 연결
+resource "aws_iam_role_policy_attachment" "ecr_policy_attachment" {
+  role       = data.aws_iam_role.existing_role.name
+  policy_arn = aws_iam_policy.ecr_policy.arn
+}
