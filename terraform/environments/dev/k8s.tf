@@ -16,67 +16,109 @@ locals {
   }
 }
 
-# 마스터노드 보안그룹 설정
-module "k8s_master_sg" {
+# 통합된 K8s 노드 보안그룹
+module "k8s_node_sg" {
   source            = "../../modules/security_group"
-  sg_name           = "${local.k8s_name_prefix}-master-sg"
-  vpc_id            = data.aws_vpc.main.id  # 네트워크 모듈에서 생성된 VPC ID를 참조
+  sg_name           = "${local.k8s_name_prefix}-node-sg"
+  vpc_id            = data.aws_vpc.main.id
+  
   ingress_rules = [
+    # SSH 접속
     { from_port = 22,    to_port = 22,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow SSH" },
-    { from_port = 8080,  to_port = 8080,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow 8080" },
-    { from_port = 6443,  to_port = 6443,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Kubernetes API" },
-    { from_port = 2379,  to_port = 2380,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow etcd from VPC and Pod Network" },
-    { from_port = 10250, to_port = 10252, protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow kubelet, controller manager, and scheduler from VPC and Pod Network" },
-    { from_port = 30000, to_port = 32767, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow NodePort" },
-    { from_port = 53,    to_port = 53,    protocol = "tcp", cidr_blocks = ["172.16.0.0/16"], description = "Allow DNS (CoreDNS) TCP from Pod Network" },
-    { from_port = 53,    to_port = 53,    protocol = "udp", cidr_blocks = ["172.16.0.0/16"], description = "Allow DNS (CoreDNS) UDP from Pod Network" },
-    { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow all traffic from VPC and Pod Network" }
-  ]
-  tags = merge(local.tags, {
-    Name = "${local.k8s_name_prefix}-master-sg"
-    NodeType = "master"
-  })
-}
-
-# 워커노드 보안그룹 설정
-module "k8s_worker_sg" {
-  source            = "../../modules/security_group"
-  sg_name           = "${local.k8s_name_prefix}-worker-sg"
-  vpc_id            = data.aws_vpc.main.id  # 네트워크 모듈에서 생성된 VPC ID를 참조
-  ingress_rules = [
-    { from_port = 22,    to_port = 22,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow SSH" },
+    
+    # 웹 서비스 포트
     { from_port = 80,    to_port = 80,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTP" },
     { from_port = 443,   to_port = 443,   protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTPS" },
-    { from_port = 8080,  to_port = 8080,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Tomcat" },
-    { from_port = 8443,  to_port = 8445,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow AWS services" },
-    { from_port = 3478,  to_port = 3478,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow WebRTC (STUN/TURN)" },
-    { from_port = 6379,  to_port = 6379,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow Redis" },
-    { from_port = 27017, to_port = 27017, protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow MongoDB" },
-    { from_port = 3306,  to_port = 3306,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow MySQL" },
-    { from_port = 10248, to_port = 10248, protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow Kubelet API" },
-    { from_port = 10250, to_port = 10250, protocol = "tcp", cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow Kubelet API" },
+    { from_port = 8080,  to_port = 8080,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow 8080" },
+    { from_port = 8000,  to_port = 8000,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow aiserver" },
+
+    # Kubernetes API 및 컴포넌트
+    { from_port = 6443,  to_port = 6443,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Kubernetes API" },
+    { from_port = 2379,  to_port = 2380,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow etcd" },
+    { from_port = 10248, to_port = 10248, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Kubelet API" },
+    { from_port = 10250, to_port = 10252, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow kubelet APIs" },
+    { from_port = 10254, to_port = 10254, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Ingress Controller Health Check" },
+    { from_port = 10257, to_port = 10257, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow controller-manager" },
+    { from_port = 10259, to_port = 10259, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Scheduler" },
+
+    # NodePort 서비스
     { from_port = 30000, to_port = 32767, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow NodePort Services" },
-    { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["10.0.0.0/16", "172.16.0.0/16"], description = "Allow all traffic from VPC and Pod Network" }
+    
+    # 데이터베이스 포트 (내부 통신용)
+    { from_port = 3306,  to_port = 3306,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow MySQL" },
+    { from_port = 6379,  to_port = 6379,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Redis" },
+    { from_port = 27017, to_port = 27017, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow MongoDB" },
+    
+    # AWS 서비스 포트
+    { from_port = 8443,  to_port = 8445,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow AWS services" },
+    
+    # WebRTC
+    { from_port = 3478,  to_port = 3478,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow WebRTC" },
+    { from_port = 3478,  to_port = 3478,  protocol = "udp", cidr_blocks = ["0.0.0.0/0"], description = "Allow turn server" },
+    { from_port = 5349,  to_port = 5349,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "turn over tls" },
+    { from_port = 49152,  to_port = 65535,  protocol = "udp", cidr_blocks = ["0.0.0.0/0"], description = "Allow turn server" },
+    
+    # BGP TEST
+    { from_port = 179,  to_port = 179,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow BGP" },
+    
+    # 클러스터 내부 통신
+    { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["10.0.0.0/16"], description = "Allow all internal traffic" },
+    { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["172.16.0.0/16"], description = "Allow all internal traffic" }
   ]
+  
   tags = merge(local.tags, {
-      Name = "${local.k8s_name_prefix}-worker-sg",
-      NodeType = "worker"
+    Name = "${local.k8s_name_prefix}-node-sg",
   })
 }
 
-# k8s 마스터/워커노드 IAM 역할 
+# k8s 마스터/워커노드 IAM 역할
 module "k8s_master_iam" {
   source              = "../../modules/iam"
-  role_name           = "${local.k8s_name_prefix}-master-role"
+  role_name           = "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   policy_name         = "${local.k8s_name_prefix}-master-policy"
   policy_description  = "Policy for master node to manage the cluster"
   policy_actions      = [
-    "ec2:DescribeInstances",
-    "autoscaling:*",
+    "transcribe:*",
+    "ec2:*",
     "elasticloadbalancing:*",
+    "route53:*",
+    "s3:*",
+    "autoscaling:DescribeAutoScalingGroups",
+    "autoscaling:DescribeLaunchConfigurations",
+    "autoscaling:DescribeTags",
+    "iam:CreateServiceLinkedRole",
+    "kms:DescribeKey",
+    "cognito-idp:DescribeUserPoolClient",
+    "acm:ListCertificates",
+    "acm:GetCertificate",
+    "acm:DescribeCertificate",
+    "acm:RequestCertificate",
+    "acm:DeleteCertificate",
+    "acm:AddTagsToCertificate",
+    "acm:RemoveTagsFromCertificate",
+    "acm:UpdateCertificateOptions",
+    "acm:ValidateCertificate",
+    "iam:ListServerCertificates",
+    "iam:GetServerCertificate",
+    "waf-regional:GetWebACL",
+    "waf-regional:GetWebACLForResource",
+    "waf-regional:AssociateWebACL",
+    "waf-regional:DisassociateWebACL",
+    "wafv2:GetWebACL",
+    "wafv2:GetWebACLForResource",
+    "wafv2:AssociateWebACL",
+    "wafv2:DisassociateWebACL",
+    "shield:GetSubscriptionState",
+    "shield:DescribeProtection",
+    "shield:CreateProtection",
+    "shield:DeleteProtection",
+    "iam:ListAttachedRolePolicies",
     "ecr:GetAuthorizationToken",
     "ecr:BatchCheckLayerAvailability",
     "ecr:GetDownloadUrlForLayer",
+    "ecr:GetRepositoryPolicy",
+    "ecr:DescribeRepositories",
+    "ecr:ListImages",
     "ecr:BatchGetImage"
   ]
 
@@ -85,18 +127,21 @@ module "k8s_master_iam" {
   })
 }
 
+# k8s 마스터/워커노드 IAM 역할
 module "k8s_worker_iam" {
   source              = "../../modules/iam"
-  role_name           = "${local.k8s_name_prefix}-worker-role"
+  role_name           = "nodes.cluster-api-provider-aws.sigs.k8s.io"
   policy_name         = "${local.k8s_name_prefix}-worker-policy"
-  policy_description  = "Policy for worker node to access necessary AWS services"
+  policy_description  = "Policy for worker node to manage the cluster"
   policy_actions      = [
-    "s3:GetObject",
-    "s3:PutObject",
-    "cloudwatch:PutMetricData",
-    "logs:CreateLogStream",
-    "logs:PutLogEvents",
+    "ec2:DescribeInstances",
+    "ec2:DescribeRegions",
+    "ecr:GetAuthorizationToken",
+    "ecr:BatchCheckLayerAvailability",
     "ecr:GetDownloadUrlForLayer",
+    "ecr:GetRepositoryPolicy",
+    "ecr:DescribeRepositories",
+    "ecr:ListImages",
     "ecr:BatchGetImage"
   ]
 
@@ -113,18 +158,18 @@ module "k8s_master_node" {
 
   key_name                    = "ptk-k8s-key"
   instance_type               = "t3.medium"
-  volume_size                 = 50
+  volume_size                 = 40
   associate_public_ip_address = true
   subnet_id                   = data.aws_subnet.public_a.id
-  security_group_ids          = [module.k8s_master_sg.security_group_id]
+  security_group_ids          = [module.k8s_node_sg.security_group_id]
   iam_instance_profile        = module.k8s_master_iam.instance_profile_name
   user_data                   = filebase64("${path.module}/scripts/user_data.sh")
 
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-master-node",
     NodeGroup = "master-node",
-    NodeType  = "master",
-    Role      = "master"
+    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned",
+    "kubespray-role" = "kube_control_plane,etcd"
   })
 }
 
@@ -141,15 +186,15 @@ module "k8s_worker_nodes" {
   volume_size                 = each.value.volume_size
   associate_public_ip_address = each.value.use_public_ip
   subnet_id                   = each.value.subnet_id
-  security_group_ids          = [module.k8s_worker_sg.security_group_id]
+  security_group_ids          = [module.k8s_node_sg.security_group_id]
   iam_instance_profile        = module.k8s_master_iam.instance_profile_name
   user_data                   = filebase64("${path.module}/scripts/user_data.sh")
 
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-${each.key}",
     NodeGroup = "worker-node",
-    NodeType  = "worker",
-    Role      = "worker"
+    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned"
+    "kubespray-role" = "kube_node"
   })
 }
 
@@ -173,106 +218,4 @@ output k8s_worker_nodes {
       private_ip    = node.private_ip
     }
   }
-}
-
-## etcd용 볼륨 추가 ## 
-
-resource "aws_ebs_volume" "master_etcd_volume" {
-  availability_zone = data.aws_subnet.public_a.availability_zone
-  size              = 10
-  type              = "gp3"
-  
-  tags = merge(local.tags, {
-    Name = "${local.k8s_name_prefix}-master-etcd-volume"
-  })
-}
-
-resource "aws_volume_attachment" "master_etcd_attachment" {
-  device_name = "/dev/sdf"
-  volume_id   = aws_ebs_volume.master_etcd_volume.id
-  instance_id = module.k8s_master_node.instance_id
-}
-
-## 로드밸런서 추가 ##
-
-# 로드 밸런서 보안 그룹 설정
-module "k8s_lb_sg" {
-  source            = "../../modules/security_group"
-  sg_name           = "${local.k8s_name_prefix}-lb-sg"
-  vpc_id            = data.aws_vpc.main.id  # 네트워크 모듈에서 생성된 VPC ID를 참조
-  ingress_rules = [
-    { from_port = 80,    to_port = 80,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTP" },
-    { from_port = 443,   to_port = 443,   protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTPS" }
-  ]
-  tags = merge(local.tags, {
-      Name = "${local.k8s_name_prefix}-lb-sg",
-      NodeType = "load-balancer"
-  })
-}
-
-# ALB 리소스
-resource "aws_lb" "k8s_alb" {
-  name               = "${local.k8s_name_prefix}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [module.k8s_lb_sg.security_group_id]
-  subnets            = [data.aws_subnet.public_a.id, data.aws_subnet.public_c.id]
-
-  tags = merge(local.tags, {
-    Name = "${local.k8s_name_prefix}-alb"
-  })
-}
-
-# ALB 리스너 설정 (HTTP)
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.k8s_alb.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.k8s_tg.arn
-  }
-}
-
-# 타겟 그룹 설정
-resource "aws_lb_target_group" "k8s_tg" {
-  name     = "${local.k8s_name_prefix}-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.main.id
-
-  health_check {
-    path                = "/healthz"   # Nginx Ingress 컨트롤러의 헬스체크 경로
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 3
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
-
-  tags = merge(local.tags, {
-    Name = "${local.k8s_name_prefix}-tg"
-  })
-}
-
-
-# EBS 볼륨 이름을 output으로 저장
-output "master_etcd_volume_name" {
-  description = "The name of the EBS volume for etcd on the master node"
-  value       = "${local.k8s_name_prefix}-master-etcd-volume"
-}
-
-# 워커 노드를 타겟 그룹에 등록
-resource "aws_lb_target_group_attachment" "worker_node" {
-  for_each        = module.k8s_worker_nodes
-  target_group_arn = aws_lb_target_group.k8s_tg.arn
-  target_id        = each.value.instance_id
-  port             = 80  # 워커 노드로 트래픽 전달
-}
-
-# 로드밸런서 이름 출력
-output "lb_name" {
-  description = "The name of the Application Load Balancer"
-  value       = aws_lb.k8s_alb.name
 }
