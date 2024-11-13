@@ -30,6 +30,7 @@ module "k8s_node_sg" {
     { from_port = 80,    to_port = 80,    protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTP" },
     { from_port = 443,   to_port = 443,   protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow HTTPS" },
     { from_port = 8080,  to_port = 8080,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow 8080" },
+    { from_port = 8000,  to_port = 8000,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow aiserver" },
 
     # Kubernetes API 및 컴포넌트
     { from_port = 6443,  to_port = 6443,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Kubernetes API" },
@@ -37,6 +38,8 @@ module "k8s_node_sg" {
     { from_port = 10248, to_port = 10248, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Kubelet API" },
     { from_port = 10250, to_port = 10252, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow kubelet APIs" },
     { from_port = 10254, to_port = 10254, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Ingress Controller Health Check" },
+    { from_port = 10257, to_port = 10257, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow controller-manager" },
+    { from_port = 10259, to_port = 10259, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Scheduler" },
 
     # NodePort 서비스
     { from_port = 30000, to_port = 32767, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow NodePort Services" },
@@ -51,83 +54,43 @@ module "k8s_node_sg" {
     
     # WebRTC
     { from_port = 3478,  to_port = 3478,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow WebRTC" },
+    { from_port = 3478,  to_port = 3478,  protocol = "udp", cidr_blocks = ["0.0.0.0/0"], description = "Allow turn server" },
+    { from_port = 5349,  to_port = 5349,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "turn over tls" },
+    { from_port = 49152,  to_port = 65535,  protocol = "udp", cidr_blocks = ["0.0.0.0/0"], description = "Allow turn server" },
+    
+    # BGP TEST
+    { from_port = 179,  to_port = 179,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow BGP" },
     
     # 클러스터 내부 통신
+    { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["10.0.0.0/16"], description = "Allow all internal traffic" },
     { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["172.16.0.0/16"], description = "Allow all internal traffic" }
   ]
   
   tags = merge(local.tags, {
     Name = "${local.k8s_name_prefix}-node-sg",
-    NodeType = "k8s-node"
   })
 }
 
 # k8s 마스터/워커노드 IAM 역할
 module "k8s_master_iam" {
   source              = "../../modules/iam"
-  role_name           = "${local.k8s_name_prefix}-master-role"
+  role_name           = "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   policy_name         = "${local.k8s_name_prefix}-master-policy"
   policy_description  = "Policy for master node to manage the cluster"
   policy_actions      = [
     "transcribe:*",
+    "ec2:*",
+    "elasticloadbalancing:*",
+    "route53:*",
+    "s3:*",
     "autoscaling:DescribeAutoScalingGroups",
     "autoscaling:DescribeLaunchConfigurations",
     "autoscaling:DescribeTags",
-    "ec2:DescribeInstances",
-    "ec2:DescribeRegions",
-    "ec2:DescribeRouteTables",
-    "ec2:DescribeSecurityGroups",
-    "ec2:DescribeSubnets",
-    "ec2:DescribeVolumes",
-    "ec2:DescribeAvailabilityZones",
-    "ec2:CreateSecurityGroup",
-    "ec2:CreateTags",
-    "ec2:CreateVolume",
-    "ec2:ModifyInstanceAttribute",
-    "ec2:ModifyVolume",
-    "ec2:AttachVolume",
-    "ec2:AuthorizeSecurityGroupIngress",
-    "ec2:CreateRoute",
-    "ec2:DeleteRoute",
-    "ec2:DeleteSecurityGroup",
-    "ec2:DeleteVolume",
-    "ec2:DetachVolume",
-    "ec2:RevokeSecurityGroupIngress",
-    "ec2:DescribeVpcs",
-    "elasticloadbalancing:AddTags",
-    "elasticloadbalancing:AttachLoadBalancerToSubnets",
-    "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-    "elasticloadbalancing:CreateLoadBalancer",
-    "elasticloadbalancing:CreateLoadBalancerPolicy",
-    "elasticloadbalancing:CreateLoadBalancerListeners",
-    "elasticloadbalancing:ConfigureHealthCheck",
-    "elasticloadbalancing:DeleteLoadBalancer",
-    "elasticloadbalancing:DeleteLoadBalancerListeners",
-    "elasticloadbalancing:DescribeLoadBalancers",
-    "elasticloadbalancing:DescribeLoadBalancerAttributes",
-    "elasticloadbalancing:DetachLoadBalancerFromSubnets",
-    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-    "elasticloadbalancing:ModifyLoadBalancerAttributes",
-    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-    "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-    "elasticloadbalancing:AddTags",
-    "elasticloadbalancing:CreateListener",
-    "elasticloadbalancing:CreateTargetGroup",
-    "elasticloadbalancing:DeleteListener",
-    "elasticloadbalancing:DeleteTargetGroup",
-    "elasticloadbalancing:DescribeListeners",
-    "elasticloadbalancing:DescribeLoadBalancerPolicies",
-    "elasticloadbalancing:DescribeTargetGroups",
-    "elasticloadbalancing:DescribeTargetHealth",
-    "elasticloadbalancing:ModifyListener",
-    "elasticloadbalancing:ModifyTargetGroup",
-    "elasticloadbalancing:RegisterTargets",
-    "elasticloadbalancing:DeregisterTargets",
-    "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
     "iam:CreateServiceLinkedRole",
     "kms:DescribeKey",
     "cognito-idp:DescribeUserPoolClient",
     "acm:ListCertificates",
+    "acm:GetCertificate",
     "acm:DescribeCertificate",
     "acm:RequestCertificate",
     "acm:DeleteCertificate",
@@ -149,16 +112,6 @@ module "k8s_master_iam" {
     "shield:DescribeProtection",
     "shield:CreateProtection",
     "shield:DeleteProtection",
-    "ec2:DescribeNetworkInterfaces",
-    "ec2:DescribeTags",
-    "ec2:GetCoipPoolUsage",
-    "ec2:DescribeCoipPools",
-    "elasticloadbalancing:SetWebAcl",
-    "elasticloadbalancing:ModifyRule",
-    "elasticloadbalancing:CreateRule",
-    "elasticloadbalancing:DeleteRule",
-    "elasticloadbalancing:AddListenerCertificates",
-    "elasticloadbalancing:RemoveListenerCertificates",
     "iam:ListAttachedRolePolicies",
     "ecr:GetAuthorizationToken",
     "ecr:BatchCheckLayerAvailability",
@@ -177,7 +130,7 @@ module "k8s_master_iam" {
 # k8s 마스터/워커노드 IAM 역할
 module "k8s_worker_iam" {
   source              = "../../modules/iam"
-  role_name           = "${local.k8s_name_prefix}-worker-role"
+  role_name           = "nodes.cluster-api-provider-aws.sigs.k8s.io"
   policy_name         = "${local.k8s_name_prefix}-worker-policy"
   policy_description  = "Policy for worker node to manage the cluster"
   policy_actions      = [
@@ -190,7 +143,6 @@ module "k8s_worker_iam" {
     "ecr:DescribeRepositories",
     "ecr:ListImages",
     "ecr:BatchGetImage"
-
   ]
 
   tags = merge(local.tags, {
@@ -216,9 +168,8 @@ module "k8s_master_node" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-master-node",
     NodeGroup = "master-node",
-    NodeType  = "master",
-    Role      = "master",
-    "kubernetes.io/cluster/${local.service_name}" = "owned"
+    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned",
+    "kubespray-role" = "kube_control_plane,etcd"
   })
 }
 
@@ -242,9 +193,8 @@ module "k8s_worker_nodes" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-${each.key}",
     NodeGroup = "worker-node",
-    NodeType  = "worker",
-    Role      = "worker",
-    "kubernetes.io/cluster/${local.service_name}" = "owned"
+    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned"
+    "kubespray-role" = "kube_node"
   })
 }
 

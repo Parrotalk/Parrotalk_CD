@@ -5,7 +5,7 @@ resource "aws_vpc" "this" {
 
   tags = {
     Name = "${var.service_name}-vpc"
-    "kubernetes.io/cluster/${var.service_name}" = "shared"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"  # 클러스터 태그 추가
   }
 }
 
@@ -18,8 +18,8 @@ resource "aws_subnet" "public_a" {
 
   tags = {
     Name = "${var.service_name}-subnet-public-a"
-    "kubernetes.io/cluster/${var.service_name}" = "shared"
-    "kubernetes.io/role/elb"                    = "1"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"
+    "kubernetes.io/role/elb" = "1"  # 외부 로드밸런서용 태그
   }
 }
 
@@ -29,11 +29,11 @@ resource "aws_subnet" "public_c" {
   cidr_block = "10.0.2.0/24"
   availability_zone = "ap-northeast-2c"
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "${var.service_name}-subnet-public-c"
-    "kubernetes.io/cluster/${var.service_name}" = "shared"
-    "kubernetes.io/role/elb"                    = "1"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"
+    "kubernetes.io/role/elb" = "1"  # 외부 로드밸런서용 태그
   }
 }
 
@@ -45,8 +45,8 @@ resource "aws_subnet" "private_a" {
 
   tags = {
     Name = "${var.service_name}-subnet-private-a"
-    "kubernetes.io/cluster/${var.service_name}" = "shared"
-    "kubernetes.io/role/internal-elb"           = "1"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"
+    "kubernetes.io/role/internal-elb" = "1"  # 내부 로드밸런서용 태그
   }
 }
 
@@ -58,8 +58,8 @@ resource "aws_subnet" "private_c" {
 
   tags = {
     Name = "${var.service_name}-subnet-private-c"
-    "kubernetes.io/cluster/${var.service_name}" = "shared"
-    "kubernetes.io/role/internal-elb"           = "1"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"
+    "kubernetes.io/role/internal-elb" = "1"  # 내부 로드밸런서용 태그
   }
 }
 
@@ -83,6 +83,7 @@ resource "aws_route_table" "public" {
 
   tags = {
     Name = "${var.service_name}-rt-public"
+    "kubernetes.io/cluster/${var.service_name}-dev" = "shared"
   }
 }
 
