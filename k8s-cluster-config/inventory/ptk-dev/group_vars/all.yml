@@ -1,0 +1,37 @@
+# 기본 클러스터 설정
+cluster_name: ptk-dev
+aws_region: "ap-northeast-2"
+
+# 네트워크 설정
+kube_network_plugin: calico
+kube_pods_subnet: "172.16.0.0/16"
+kube_service_addresses: "10.233.0.0/18"
+
+# 컨테이너 런타임 설정
+container_manager: containerd
+dns_mode: coredns
+
+# 쿠버네티스 버전 설정
+kube_version: v1.30.0
+
+# 클라우드 프로바이더 설정
+cloud_provider: external
+
+# AWS CCM 설정
+aws_cloud_controller_manager_enabled: true
+aws_cloud_controller_manager_version: v1.30.0
+aws_ebs_csi_enabled: true
+
+# kubeadm 설정
+kubeadm_config:
+  init:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: "external"
+  cluster:
+    apiServer:
+      extraArgs:
+        cloud-provider: "external"
+    controllerManager:
+      extraArgs:
+        cloud-provider: "external"

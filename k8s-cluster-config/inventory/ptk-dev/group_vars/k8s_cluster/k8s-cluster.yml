@@ -1,0 +1,9 @@
+kube_version: v1.30.0
+container_manager: containerd
+cluster_name: ptk-dev
+cloud_provider: external
+kube_pods_subnet: 10.244.0.0/16
+kubelet_node_config:
+  apiVersion: kubelet.config.k8s.io/v1beta1
+  kind: KubeletConfiguration
+  cloudProvider: external

@@ -1,0 +1,36 @@
+---
+- name: Add Helm repository for Argo CD
+  command: "helm repo add argo https://argoproj.github.io/argo-helm"
+
+- name: Update Helm repositories
+  command: "helm repo update"
+
+- name: Install Argo CD using Helm
+  command: >
+    helm upgrade --install argocd argo/argo-cd \
+    --namespace argocd \
+    --create-namespace \
+    --set server.service.type=NodePort \
+    --set server.service.nodePortHttp={{ service_port }}
+
+- name: Wait for Argo CD pods to be ready
+  command: >
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+
+- name: Get Argo CD initial admin password
+  shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
+  register: argocd_admin_password
+
+- name: Display Argo CD initial admin password
+  ansible.builtin.debug:
+    msg: "Argo CD initial admin password: {{ argocd_admin_password.stdout }}"
+
+- name: Download ArgoCD CLI
+  command: >
+    curl -sSL -o /usr/local/bin/argocd
+    https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+  args:
+    creates: /usr/local/bin/argocd
+
+- name: Make ArgoCD CLI executable
+  command: "chmod +x /usr/local/bin/argocd"
