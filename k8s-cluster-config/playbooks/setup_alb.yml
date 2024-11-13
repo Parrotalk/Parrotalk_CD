@@ -1,0 +1,5 @@
+- name: Setup ArgoCD SSH Authentication with GitHub
+  hosts: kube_control_plane
+  become: true
+  roles:
+    - awscli

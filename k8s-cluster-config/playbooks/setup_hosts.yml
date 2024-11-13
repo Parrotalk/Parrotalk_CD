@@ -1,0 +1,73 @@
+---
+## https://github.com/kubernetes-sigs/kubespray/blob/master/docs/cloud_providers/aws.md
+- name: Initialize hosts.ini locally
+  hosts: localhost
+  tasks:
+    - name: Create an empty hosts.ini file
+      copy:
+        content: |
+          # hosts.ini generated on {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+        dest: "{{ playbook_dir }}/hosts.ini"
+        force: yes
+
+- name: Update hostnames and manage /etc/hosts, then add to hosts.ini
+  hosts: all
+  become: yes
+  gather_facts: yes
+  serial: 1
+  tasks:
+    # EC2 cloud-init 설정 변경
+    - name: Configure cloud-init to preserve hostname
+      lineinfile:
+        path: /etc/cloud/cloud.cfg
+        regexp: '^preserve_hostname:'
+        line: 'preserve_hostname: true'
+        create: yes
+        
+    - name: Set hostname using hostnamectl from inventory
+      command: hostnamectl set-hostname {{ inventory_hostname }} --static
+      become: yes
+
+    - name: Get internal IP address
+      set_fact:
+        internal_ip: "{{ ansible_default_ipv4.address }}"
+
+    - name: Add host information to local hosts.ini file
+      delegate_to: localhost
+      run_once: no
+      become: no
+      lineinfile:
+        path: "{{ playbook_dir }}/hosts.ini"
+        line: "{{ internal_ip }} {{ inventory_hostname }}"
+        state: present
+
+- name: Add hosts.ini entries to /etc/hosts on each server
+  hosts: all
+  become: yes
+  tasks:
+    - name: Copy hosts.ini to the remote server
+      copy:
+        src: "{{ playbook_dir }}/hosts.ini"
+        dest: /tmp/hosts.ini
+        mode: '0644'
+
+    - name: Add hosts.ini contents to /etc/hosts
+      shell: "cat /tmp/hosts.ini >> /etc/hosts"
+      become: yes
+
+    - name: Display /etc/hosts content for verification
+      command: cat /etc/hosts
+      register: hosts_file_content
+      become: yes
+
+    - name: Show /etc/hosts
+      debug:
+        var: hosts_file_content.stdout
+
+- name: Remove hosts.ini locally
+  hosts: localhost
+  tasks:
+    - name: Delete hosts.ini file
+      file:
+        path: "{{ playbook_dir }}/hosts.ini"
+        state: absent

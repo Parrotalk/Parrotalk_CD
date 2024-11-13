@@ -1,0 +1,16 @@
+---
+- name: Delete ValidateHook
+  command: kubectl delete -A ValidatingWebhookConfiguration ingress-nginx-admission
+  ignore_errors: yes
+  
+- name: Add Helm repo for Nginx Ingress
+  command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  register: helm_repo_add
+  failed_when: 
+    - helm_repo_add.rc != 0
+
+- name: Update Helm repos
+  command: helm repo update
+
+- name: Install Nginx Ingress Controller
+  command: helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
