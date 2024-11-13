@@ -1,9 +1,0 @@
-- name: Setup Nginx Ingress
-  hosts: dev_master
-  become: yes
-  gather_facts: false
-  vars:
-    acm_arn: "arn:aws:acm:us-east-1:703671911294:certificate/0456e36d-7664-4967-a603-48c1457bcabc"
-    vpc_cidr: "10.0.0.0/16"
-  roles:
-   - nlb
