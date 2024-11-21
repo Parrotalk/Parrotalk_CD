@@ -174,7 +174,7 @@ module "k8s_master_node" {
 
   key_name                    = "ptk-k8s-key"
   instance_type               = "t3.medium"
-  volume_size                 = 40
+  volume_size                 = 60
   associate_public_ip_address = true
   subnet_id                   = data.aws_subnet.public_a.id
   security_group_ids          = [module.k8s_node_sg.security_group_id]
