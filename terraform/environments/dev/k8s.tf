@@ -184,7 +184,7 @@ module "k8s_master_node" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-master-node",
     NodeGroup = "master-node",
-    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned",
+    "kubernetes.io/cluster/${local.service_name}" = "owned",
     "kubespray-role" = "kube_control_plane,etcd"
   })
 }
@@ -209,7 +209,7 @@ module "k8s_worker_nodes" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-${each.key}",
     NodeGroup = "worker-node",
-    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned"
+    "kubernetes.io/cluster/${local.service_name}" = "owned"
     "kubespray-role" = "kube_node"
   })
 }
