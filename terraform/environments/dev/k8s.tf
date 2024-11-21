@@ -61,9 +61,25 @@ module "k8s_node_sg" {
     # BGP TEST
     { from_port = 179,  to_port = 179,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow BGP" },
     
+    # Jenkins
+    { from_port = 50000,  to_port = 50000,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Jenkins agent communication on port 50000" },
+    
+    # Prometheus
+    { from_port = 9090,  to_port = 9090,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Prometheus" },
+
+    # Grafana
+    { from_port = 3030,  to_port = 3030,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Grafana on custom port 3030" },
+
+    # Loki
+    { from_port = 3100,  to_port = 3100,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Loki" },
+
+    # Sentry
+    { from_port = 9000,  to_port = 9000,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Sentry UI" },
+
     # 클러스터 내부 통신
     { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["10.0.0.0/16"], description = "Allow all internal traffic" },
     { from_port = 0,     to_port = 0,     protocol = "-1",  cidr_blocks = ["172.16.0.0/16"], description = "Allow all internal traffic" }
+
   ]
   
   tags = merge(local.tags, {
