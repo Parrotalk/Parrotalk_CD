@@ -1,5 +1,5 @@
 locals {
-  k8s_name_prefix = "${local.service_name}-${local.environment}-k8s"
+  k8s_name_prefix = "${local.service_name}-k8s"
   k8s_node_group = {
     worker-node-1 = {
       instance_type = "t3.medium"
@@ -85,6 +85,7 @@ module "k8s_node_sg" {
   tags = merge(local.tags, {
     Name = "${local.k8s_name_prefix}-node-sg",
   })
+  
 }
 
 # k8s 마스터/워커노드 IAM 역할

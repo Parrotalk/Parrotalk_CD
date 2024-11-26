@@ -1,5 +1,5 @@
 # 기본 클러스터 설정
-cluster_name: ptk-dev
+cluster_name: ptk
 aws_region: "ap-northeast-2"
 
 # 네트워크 설정

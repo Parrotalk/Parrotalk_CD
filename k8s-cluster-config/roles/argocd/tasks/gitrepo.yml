@@ -1,0 +1,16 @@
+- name: Get Argo CD initial admin password
+  shell: "kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode"
+  register: argocd_password
+
+- name: Add Git repository to ArgoCD
+  command: >
+    argocd login argocd-server.argocd
+    --username admin 
+    --password {{ argocd_password.stdout }} 
+    --plaintext
+
+- name: Add repository
+  command: >
+    argocd repo add {{ git_repo_url }}
+    --username {{ git_username }}
+    --password {{ git_token }}

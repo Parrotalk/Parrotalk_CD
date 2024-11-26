@@ -1,0 +1,55 @@
+- name: Add AWS Cloud Controller Manager Helm repo
+  command: helm repo add aws-cloud-controller-manager https://kubernetes.github.io/cloud-provider-aws
+
+- name: Add AWS Load Balancer Controller Helm repo
+  command: helm repo add eks https://aws.github.io/eks-charts
+
+- name: Update Helm repos
+  command: helm repo update
+
+- name: Install AWS Cloud Controller Manager
+  command: >
+    helm upgrade --install aws-cloud-controller-manager \
+    aws-cloud-controller-manager/aws-cloud-controller-manager \
+    --namespace kube-system \
+    --set cloudControllerManager.extraArgs.cloud-provider=aws \
+    --set cloudControllerManager.extraArgs.allocate-node-cidrs=true \
+    --set cloudControllerManager.extraArgs.configure-cloud-routes=true \
+    --set cloudControllerManager.extraArgs.region=ap-northeast-2
+
+- name: Modify AWS Cloud Controller Manager DaemonSet
+  shell: |
+    kubectl patch daemonset aws-cloud-controller-manager -n kube-system \
+    --type=json \
+    -p='[
+      {"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--cluster-cidr=10.244.0.0/16"}
+    ]'
+  register: patch_result
+  ignore_errors: yes
+
+- name: Debug DaemonSet Patch Result
+  debug:
+    var: patch_result.stdout_lines
+
+- name: Install AWS Load Balancer Controller
+  command: >
+    helm upgrade --install aws-load-balancer-controller \
+    eks/aws-load-balancer-controller \
+    --namespace kube-system \
+    --set clusterName={{ cluster_name }} \
+    --set serviceAccount.create=true \
+    --set serviceAccount.name=aws-load-balancer-controller \
+    --set region=ap-northeast-2
+
+- name: Check for uninitialized taint on worker nodes
+  shell: |
+    kubectl describe nodes | grep -B1 "Taints.*node.cloudprovider.kubernetes.io/uninitialized"
+  register: taint_check
+  retries: 3
+  delay: 10
+  until: taint_check.stdout.find('<none>') != -1
+
+- name: Fail if uninitialized taint still exists
+  fail:
+    msg: "Worker nodes still have uninitialized taint. Cloud controller manager may not be working properly."
+  when: taint_check.stdout.find('<none>') == -1
