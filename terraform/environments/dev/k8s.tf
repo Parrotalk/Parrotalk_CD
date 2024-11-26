@@ -1,5 +1,5 @@
 locals {
-  k8s_name_prefix = "${local.service_name}-${local.environment}-k8s"
+  k8s_name_prefix = "${local.service_name}-k8s"
   k8s_node_group = {
     worker-node-1 = {
       instance_type = "t3.medium"
@@ -85,6 +85,7 @@ module "k8s_node_sg" {
   tags = merge(local.tags, {
     Name = "${local.k8s_name_prefix}-node-sg",
   })
+  
 }
 
 # k8s 마스터/워커노드 IAM 역할
@@ -174,7 +175,7 @@ module "k8s_master_node" {
 
   key_name                    = "ptk-k8s-key"
   instance_type               = "t3.medium"
-  volume_size                 = 40
+  volume_size                 = 60
   associate_public_ip_address = true
   subnet_id                   = data.aws_subnet.public_a.id
   security_group_ids          = [module.k8s_node_sg.security_group_id]
@@ -184,7 +185,7 @@ module "k8s_master_node" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-master-node",
     NodeGroup = "master-node",
-    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned",
+    "kubernetes.io/cluster/${local.service_name}" = "owned",
     "kubespray-role" = "kube_control_plane,etcd"
   })
 }
@@ -209,7 +210,7 @@ module "k8s_worker_nodes" {
   tags = merge(local.tags, {
     Name      = "${local.k8s_name_prefix}-${each.key}",
     NodeGroup = "worker-node",
-    "kubernetes.io/cluster/${local.service_name}-${local.environment}" = "owned"
+    "kubernetes.io/cluster/${local.service_name}" = "owned"
     "kubespray-role" = "kube_node"
   })
 }

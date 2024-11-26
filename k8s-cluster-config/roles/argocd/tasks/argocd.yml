@@ -34,3 +34,10 @@
 
 - name: Make ArgoCD CLI executable
   command: "chmod +x /usr/local/bin/argocd"
+
+# cert manager를 위한 패키지 설치
+- name: Add Helm repository for cert-manager
+  command: "helm repo add jetstack https://charts.jetstack.io"
+
+- name: Update Helm repositories
+  command: "helm repo update"

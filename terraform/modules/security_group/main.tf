@@ -21,6 +21,11 @@ resource "aws_security_group" "this" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # 보안그룹은 새 그룹 먼저 생성 후 기존꺼삭제
+  lifecycle {
+    create_before_destroy = true
+  }
+  
   tags = var.tags
 }
 

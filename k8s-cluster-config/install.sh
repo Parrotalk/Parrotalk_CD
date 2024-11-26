@@ -3,7 +3,7 @@
 read -p "Choose action (install/reset): " ACTION
 
 KUBESPRAY_VERSION="v2.26.0"
-CLUSTER_NAME="ptk-dev"
+CLUSTER_NAME="ptk"
 BASE_DIR=$(pwd)
 
 # Kubespray 클론
