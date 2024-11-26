@@ -1,0 +1,11 @@
+- name: Setup ArgoCD SSH Authentication with GitHub
+  hosts: kube_control_plane
+  become: true
+  vars:
+    service_port: 30080
+    git_repo_url: "https://github.com/Parrotalk/Parrotalk-Manifests.git"
+    git_username: "suugit"
+    git_token: "ghp_"
+    cluster_name: ptk
+  roles:
+    - argocd
