@@ -1,0 +1,29 @@
+- name: Setup Jenkins with Helm
+  hosts: master
+  vars:
+    repo_url: "https://github.com/Parrotalk/Parrotalk-Manifests.git"
+    branch: "main" # 사용할 브랜치 (예: main)
+    environment: "dev" # 설치할 환경 (dev/prod)
+    manifests_path: "/tmp/Parrotalk-Manifests" # 로컬 임시 경로
+  tasks:
+    - name: Clone Parrotalk-Manifests repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ manifests_path }}"
+        version: "{{ branch }}"
+
+    - name: Add Jenkins Helm Repository
+      shell: |
+        helm repo add jenkins https://charts.jenkins.io
+        helm repo update
+      args:
+        executable: /bin/bash
+
+    - name: Install Jenkins with Helm
+      shell: |
+        helm upgrade --install jenkins-{{ environment }} jenkins/jenkins \
+          --namespace jenkins-{{ environment }} \
+          --create-namespace \
+          -f {{ manifests_path }}/bootstrap/jenkins/values-{{ environment }}.yaml
+      args:
+        executable: /bin/bash
