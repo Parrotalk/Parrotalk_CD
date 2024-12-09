@@ -12,6 +12,12 @@ locals {
       volume_size   = 50
       use_public_ip = true
       subnet_id = data.aws_subnet.public_c.id
+    },
+    worker-node-3 = {
+      instance_type = "t3.medium"
+      volume_size   = 30
+      use_public_ip = true
+      subnet_id = data.aws_subnet.public_c.id
     }
   }
 }
@@ -47,6 +53,7 @@ module "k8s_node_sg" {
     # 데이터베이스 포트 (내부 통신용)
     { from_port = 3306,  to_port = 3306,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow MySQL" },
     { from_port = 6379,  to_port = 6379,  protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow Redis" },
+    { from_port = 6379,  to_port = 6379,  protocol = "tcp", cidr_blocks = ["0.0.0.0/16"], description = "Allow Redis For External Service" },
     { from_port = 27017, to_port = 27017, protocol = "tcp", cidr_blocks = ["10.0.0.0/16"], description = "Allow MongoDB" },
     
     # AWS 서비스 포트
@@ -66,6 +73,7 @@ module "k8s_node_sg" {
     
     # Prometheus
     { from_port = 9090,  to_port = 9090,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Prometheus" },
+    { from_port = 9100,  to_port = 9100,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Prometheus" },
 
     # Grafana
     { from_port = 3030,  to_port = 3030,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], description = "Allow Grafana on custom port 3030" },

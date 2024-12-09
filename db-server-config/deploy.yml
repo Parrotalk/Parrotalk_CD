@@ -1,0 +1,56 @@
+- name: Deploy Docker Services
+  hosts: servers
+  become: yes
+  tasks:
+    # 도커설치
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Include Docker tasks
+      include_tasks: docker.yml
+      when: docker_check.rc != 0
+
+    # - name: Create data directories
+    #   file:
+    #     path: "{{ item }}"
+    #     state: directory
+    #     mode: '0755'
+    #   loop:
+    #     - "{{ mongodb_data_path }}"
+    #     - "{{ redis_data_path }}"
+
+    # - name: Create docker-compose directory
+    #   file:
+    #     path: /opt/ptk-db
+    #     state: directory
+    #     mode: '0755'
+
+    # - name: Copy docker-compose template
+    #   template:
+    #     src: templates/docker-compose.yml.j2
+    #     dest: /opt/ptk-db/docker-compose.yml
+    #     mode: '0644'
+
+    # - name: Restart Docker service
+    #   systemd:
+    #     name: docker
+    #     state: restarted
+    #     daemon_reload: yes
+
+    # - name: Wait for Docker to be ready
+    #   wait_for:
+    #     timeout: 10
+
+    # - name: Start docker compose
+    #   command: docker-compose -f /opt/ptk-db/docker-compose.yml up -d
+    #   args:
+    #     chdir: /opt/ptk-db
+
+    # - name: Enable docker service
+    #   systemd:
+    #     name: docker
+    #     enabled: yes
+    #     state: started
