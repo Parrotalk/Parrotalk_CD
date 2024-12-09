@@ -1,0 +1,52 @@
+# 기존워커노드 인스턴스 아이디로 이미지 생성
+aws ec2 create-image \
+ --instance-id i-08292676dd4bd9290 \
+ --name "k8s-worker-node-ami-$(date +%Y%m%d)" \
+ --description "Original k8s worker node AMI for t3.medium" \
+ --no-reboot
+
+# 새 이미지 pending -> available 상태될 때까지 대기
+aws ec2 describe-images --image-ids ami-0af54f0c4dc24488b | grep State
+
+# 새 이미지 tmp로 실행
+ aws ec2 run-instances \
+ --image-id ami-0af54f0c4dc24488b \
+ --instance-type t2.micro \
+ --subnet-id subnet-0ca9c4b041d55bb3a \
+ --security-group-ids sg-0b89b960e75405341 \
+ --tag-specifications 'ResourceType=instance,Tags=[
+   {Key=NodeGroup,Value=worker-node},
+   {Key=kubespray-role,Value=kube_node},
+   {Key=Environment,Value=dev},
+   {Key=kubernetes.io/cluster/ptk,Value=owned},
+   {Key=Name,Value=k8s-worker-temp}
+ ]'
+
+# 쿠버네티스 관련 초기화
+sudo -i  # root 권한으로 전환
+kubeadm reset -f
+rm -rf /etc/kubernetes/
+rm -rf /var/lib/kubelet/
+rm -rf /var/lib/etcd/
+systemctl disable kubelet
+
+# 컨테이너 이미지 초기화
+crictl rmi $(crictl images | grep 703671911294.dkr.ecr.ap-northeast-2.amazonaws.com/ptk-dev-ecr-argocd | awk '{print $3}')
+
+# 로그 정리
+rm -rf /var/log/containers/*
+rm -rf /var/log/pods/*
+journalctl --vacuum-time=1s
+
+# 캐시 정리
+rm -rf /var/lib/containerd/*
+
+# 클린노드 이미지 만들기
+aws ec2 create-image \
+ --instance-id i-06678ab4ba82c9746 \
+ --name "k8s-worker-node-$(date +%Y%m%d)" \
+ --description "Cleaned k8s worker node AMI for ASG" \
+ --no-reboot
+
+# 아래 이미지로 k8s-asg.tf에 해당 이미지 이용해서 template 및 asg 만들기
+"ImageId": "ami-0423b739e2ac1b110"

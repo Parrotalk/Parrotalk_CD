@@ -1,0 +1,39 @@
+#/etc/turnserver.conf"                                                                                                                                       25,13         All
+# 기본 필수 설정만 남기고 테스트
+listening-port=3478
+tls-listening-port=5349
+listening-ip=10.0.1.243
+no-ipv6
+external-ip=52.79.189.35/10.0.1.243
+realm=turn-test.ptks.link
+min-port=49152
+max-port=65535
+lt-cred-mech
+user=ptk:pass123
+log-file=/var/log/turnserver.log
+cli-password=pass321
+# TLS 인증서 설정 (새로 추가)
+cert=/etc/letsencrypt/live/turn-test.ptks.link/fullchain.pem
+pkey=/etc/letsencrypt/live/turn-test.ptks.link/privkey.pem
+
+#
+# 로깅
+verbose
+no-stdout-log
+# 추가 설정
+fingerprint
+# nonce 타임아웃 설정 (초)
+stale-nonce=300
+
+# 할당 lifetime 설정
+lifetime-max=86400          # 최대 할당 시간 (24시간)
+lifetime-min=3600          # 최소 할당 시간 (1시간)
+lifetime-default=3600      # 기본 할당 시간 (1시간)
+
+# 모빌리티 지원 활성화 (ICE restart 지원)
+mobility
+
+# 세션 타임아웃 설정
+cli-timeout=3600           # CLI 세션 타임아웃
+total-quota=100           # 동시 세션 최대 수
+user-quota=10             # 사용자당 최대 세션 수

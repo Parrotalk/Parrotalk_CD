@@ -1,0 +1,24 @@
+# templates/docker-compose.yml.j2
+version: '3.8'
+services:
+  mongodb:
+    container_name: ptk-mongodb
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - {{ mongodb_data_path }}:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME={{ mongodb_user }}
+      - MONGO_INITDB_ROOT_PASSWORD={{ mongodb_password }}
+    restart: always
+
+  redis:
+    container_name: ptk-redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - {{ redis_data_path }}:/data
+    command: redis-server --requirepass {{ redis_password }}
+    restart: always

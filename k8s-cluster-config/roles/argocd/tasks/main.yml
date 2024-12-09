@@ -1,22 +1,22 @@
 # awscli 설치
-- name: Check if AWS CLI is installed
-  command: aws --version
-  register: awscli_installed
-  ignore_errors: yes
+# - name: Check if AWS CLI is installed
+#   command: aws --version
+#   register: awscli_installed
+#   ignore_errors: yes
 
-- name: Install AWS CLI if not installed
-  import_tasks: awscli.yml
-  when: awscli_installed.rc != 0
+# - name: Install AWS CLI if not installed
+#   import_tasks: awscli.yml
+#   when: awscli_installed.rc != 0
 
-- name: Check if AWS Cloud Controller Manager is installed
-  shell: |
-    kubectl get daemonset aws-cloud-controller-manager -n kube-system --no-headers
-  register: aws_cloud_controller_installed
-  ignore_errors: yes
+# - name: Check if AWS Cloud Controller Manager is installed
+#   shell: |
+#     kubectl get daemonset aws-cloud-controller-manager -n kube-system --no-headers
+#   register: aws_cloud_controller_installed
+#   ignore_errors: yes
 
-- name: Install AWS CLI if not installed
-  import_tasks: aws_provider.yml
-  when: aws_cloud_controller_installed.rc != 0
+# - name: Install AWS CLI if not installed
+#   import_tasks: aws_provider.yml
+#   when: aws_cloud_controller_installed.rc != 0
 
 # NGINX Ingress Controller 설치 여부 확인 및 태스크 가져오기
 # - name: Check if NGINX Ingress Controller is already installed
